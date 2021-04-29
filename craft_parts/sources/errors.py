@@ -88,6 +88,20 @@ class SourceUpdateUnsupported(SourceError):
         super().__init__(brief=brief)
 
 
+class PullError(SourceError):
+    """Failed to pull source."""
+
+    def __init__(self, command: List[str], exit_code: int):
+        self.command = command
+        self.exit_code = exit_code
+        brief = (
+            f"Failed to pull source: command {command!r} exited with code {exit_code}."
+        )
+        resolution = "Make sure sources are correctly specified."
+
+        super().__init__(brief=brief, resolution=resolution)
+
+
 class NetworkRequestError(SourceError):
     """A network request operation failed."""
 
@@ -121,14 +135,23 @@ class InvalidSnapPackage(SourceError):
         super().__init__(brief=brief, resolution=resolution)
 
 
-class PullError(SourceError):
-    """Failed pulling source."""
+class VCSError(SourceError):
+    """A version control system command failed."""
 
-    def __init__(self, *, command: List[str], exit_code: int):
+    def __init__(self, message: str):
+        self.message = message
+        brief = message
+
+        super().__init__(brief=brief)
+
+
+class GitCommandError(SourceError):
+    """Git command failed."""
+
+    def __init__(self, *, command: List[str], exit_code: int, output: str):
         self.command = command
         self.exit_code = exit_code
-        brief = (
-            f"Failed to pull source: command {command!r} exited with code {exit_code}."
-        )
+        self.output = output
+        brief = f"Git command {command!r} failed with code {exit_code}: {output}"
 
         super().__init__(brief=brief)

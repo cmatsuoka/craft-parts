@@ -101,4 +101,31 @@ def test_pull_error():
         err.brief == "Failed to pull source: command ['ls', '-l'] exited with code 66."
     )
     assert err.details is None
+    assert err.resolution == "Make sure sources are correctly specified."
+
+
+def test_vcs_error():
+    err = errors.VCSError("cvs: everything failed")
+    assert err.message == "cvs: everything failed"
+    assert err.brief == "cvs: everything failed"
+    assert err.details is None
+    assert err.resolution is None
+
+
+def test_git_command_error():
+    err = errors.GitCommandError(
+        command=["git", "pull", "upstream"],
+        exit_code=128,
+        output="fatal: not a git repository (or any parent up to mount point /)",
+    )
+    assert err.command == ["git", "pull", "upstream"]
+    assert err.exit_code == 128
+    assert (
+        err.output == "fatal: not a git repository (or any parent up to mount point /)"
+    )
+    assert err.brief == (
+        "Git command ['git', 'pull', 'upstream'] failed with code 128: fatal: not a "
+        "git repository (or any parent up to mount point /)"
+    )
+    assert err.details is None
     assert err.resolution is None

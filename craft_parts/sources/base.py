@@ -108,6 +108,13 @@ class SourceHandler(abc.ABC):
         raise errors.SourceUpdateUnsupported(self.__class__.__name__)
 
     @classmethod
+    def _run(cls, command: List[str], **kwargs):
+        try:
+            subprocess.check_call(command, **kwargs)
+        except subprocess.CalledProcessError as err:
+            raise errors.PullError(command=command, exit_code=err.returncode)
+
+    @classmethod
     def _run_output(cls, command: List[str]) -> str:
         try:
             return subprocess.check_output(command, text=True).strip()
