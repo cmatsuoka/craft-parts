@@ -25,6 +25,9 @@ jobs:
           pip install -U pip wheel setuptools
           pip install -U -r requirements.txt -r requirements-dev.txt
           pip install -e .
+      - name: Install other test dependencies
+        run: |
+          sudo snap install go --classic
       - name: Run black
         run: |
           source ${HOME}/.venv/bin/activate
