@@ -63,8 +63,11 @@ def test_go_plugin(new_dir, mocker):
         )
     )
 
-    # go installed in the ci test setup
-    mock_install = mocker.patch("craft_parts.packages.snaps.install_snaps")
+    # go installed in the ci test setup, don't require root to run tests
+    mock_install_snaps = mocker.patch("craft_parts.packages.snaps.install_snaps")
+    mock_install_packages = mocker.patch(
+        "craft_parts.packages.Repository.install_build_packages"
+    )
 
     lf = LifecycleManager(parts, application_name="test_go")
     actions = lf.plan(Step.PRIME)
@@ -72,7 +75,8 @@ def test_go_plugin(new_dir, mocker):
     with lf.action_executor() as ctx:
         ctx.execute(actions)
 
-    mock_install.assert_called_once_with({"go/latest/stable"})
+    mock_install_snaps.assert_called_once_with({"go/latest/stable"})
+    mock_install_packages.assert_called_once_with(["gcc"])
 
     binary = Path(lf.project_info.prime_dir, "bin", "hello")
 
