@@ -65,8 +65,8 @@ class TestSourceHandler:
         with pytest.raises(TypeError) as raised:
             # pylint: disable=abstract-class-instantiated
             FaultySource(source=None, part_src_dir=None)  # type: ignore
-        assert str(raised.value) == (
-            "Can't instantiate abstract class FaultySource with abstract methods pull"
+        assert str(raised.value).startswith(
+            "Can't instantiate abstract class FaultySource with abstract method"
         )
 
 
@@ -221,7 +221,6 @@ class TestFileSourceHandler:
             FaultyFileSource(
                 source=None, part_src_dir=None, application_name=""  # type: ignore
             )
-        assert str(raised.value) == (
-            "Can't instantiate abstract class FaultyFileSource with abstract "
-            "methods provision"
+        assert str(raised.value).startswith(
+            "Can't instantiate abstract class FaultyFileSource with abstract method"
         )
