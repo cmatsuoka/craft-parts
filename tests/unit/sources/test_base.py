@@ -69,8 +69,8 @@ class TestSourceHandler:
             FaultySource(  # type: ignore
                 source=Path(), part_src_dir=Path(), cache_dir=Path()
             )
-        assert str(raised.value) == (
-            "Can't instantiate abstract class FaultySource with abstract methods pull"
+        assert str(raised.value).startswith(
+            "Can't instantiate abstract class FaultySource with abstract method"
         )
 
 
@@ -226,7 +226,6 @@ class TestFileSourceHandler:
             FaultyFileSource(
                 source=None, part_src_dir=None, cache_dir=Path()  # type: ignore
             )
-        assert str(raised.value) == (
-            "Can't instantiate abstract class FaultyFileSource with abstract "
-            "methods provision"
+        assert str(raised.value).startswith(
+            "Can't instantiate abstract class FaultyFileSource with abstract method"
         )
