@@ -40,6 +40,8 @@ class TestPartSpecs:
             "source-type": "tar",
             "disable-parallel": True,
             "after": ["bar"],
+            "overlay-visibility": False,
+            "overlay-packages": ["overlay-pkg1", "overlay-pkg2"],
             "stage-snaps": ["stage-snap1", "stage-snap2"],
             "stage-packages": ["stage-pkg1", "stage-pkg2"],
             "build-snaps": ["build-snap1", "build-snap2"],
@@ -47,9 +49,11 @@ class TestPartSpecs:
             "build-environment": [{"ENV1": "on"}, {"ENV2": "off"}],
             "build-attributes": ["attr1", "attr2"],
             "organize": {"src1": "dest1", "src2": "dest2"},
+            "overlay": ["etc/os-release"],
             "stage": ["-usr/docs"],
             "prime": ["*"],
             "override-pull": "override-pull",
+            "override-overlay": "override-overlay",
             "override-build": "override-build",
             "override-stage": "override-stage",
             "override-prime": "override-prime",
@@ -222,6 +226,31 @@ class TestPartData:
     def test_part_get_scriptlet_none(self, step):
         p = Part("foo", {})
         assert p.spec.get_scriptlet(step) is None
+
+    @pytest.mark.parametrize(
+        "pkgs,files,script,result",
+        [
+            ([], ["*"], None, False),
+            (["pkg"], ["*"], None, True),
+            ([], ["etc/issue"], None, True),
+            ([], ["*"], "echo", True),
+        ],
+    )
+    def test_part_has_overlay(self, pkgs, files, script, result):
+        p = Part(
+            "foo",
+            {
+                "overlay-packages": pkgs,
+                "overlay": files,
+                "override-overlay": script,
+            },
+        )
+        assert p.has_overlay == result
+
+    @pytest.mark.parametrize("visible", [True, False])
+    def test_part_sees_overlay(self, visible):
+        p = Part("foo", {"overlay-visibility": visible})
+        assert p.sees_overlay == visible
 
 
 class TestPartOrdering:
