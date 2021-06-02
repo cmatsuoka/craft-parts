@@ -41,6 +41,11 @@ class ProjectDirs:
         return self._work_dir / "parts"
 
     @property
+    def overlay_dir(self) -> Path:
+        """Return the staging area containing overlay files from all parts."""
+        return self._work_dir / "overlay" / "overlay"
+
+    @property
     def stage_dir(self) -> Path:
         """Return the staging area containing installed files from all parts."""
         return self._work_dir / "stage"

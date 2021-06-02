@@ -41,6 +41,9 @@ class PartSpec(BaseModel):
     source_type: str = ""
     disable_parallel: bool = False
     after: List[str] = []
+    overlay_visibility: bool = False
+    overlay_packages: List[str] = []
+    overlay_files: List[str] = Field(["*"], alias="overlay")
     stage_snaps: List[str] = []
     stage_packages: List[str] = []
     build_snaps: List[str] = []
@@ -51,6 +54,7 @@ class PartSpec(BaseModel):
     stage_files: List[str] = Field(["*"], alias="stage")
     prime_files: List[str] = Field(["*"], alias="prime")
     override_pull: Optional[str] = None
+    override_overlay: Optional[str] = None
     override_build: Optional[str] = None
     override_stage: Optional[str] = None
     override_prime: Optional[str] = None
@@ -229,6 +233,20 @@ class Part:
         if not self.spec.after:
             return []
         return self.spec.after
+
+    @property
+    def has_overlay(self) -> bool:
+        """Return whether this part declares overlay content."""
+        return (
+            self.spec.overlay_packages != []
+            or self.spec.override_overlay is not None
+            or self.spec.overlay_files != ["*"]
+        )
+
+    @property
+    def sees_overlay(self) -> bool:
+        """Return whether this part has overlay visibility."""
+        return self.spec.overlay_visibility
 
 
 def part_by_name(name: str, part_list: List[Part]) -> Part:
