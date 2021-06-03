@@ -124,7 +124,7 @@ class Sequencer:
         if outdated_report:
             logger.debug("%s:%s is outdated", part.name, current_step)
 
-            if current_step in (Step.PULL, Step.BUILD):
+            if current_step in (Step.PULL, Step.OVERLAY, Step.BUILD):
                 self._update_step(part, current_step, reason=outdated_report.reason())
             else:
                 self._rerun_step(part, current_step, reason=outdated_report.reason())
@@ -174,6 +174,14 @@ class Sequencer:
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
                 assets={},  # TODO: obtain pull assets
+            )
+
+        elif step == Step.OVERLAY:
+            state = states.OverlayState(
+                part_properties=part_properties,
+                project_options=self._project_info.project_options,
+                files=set(),
+                directories=set(),
             )
 
         elif step == Step.BUILD:
@@ -234,6 +242,7 @@ class Sequencer:
 
 _step_verb: Dict[Step, str] = {
     Step.PULL: "pull",
+    Step.OVERLAY: "overlay",
     Step.BUILD: "build",
     Step.STAGE: "stage",
     Step.PRIME: "prime",

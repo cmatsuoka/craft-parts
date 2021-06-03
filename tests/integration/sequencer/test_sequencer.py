@@ -107,6 +107,8 @@ class TestSequencerPlan:
         assert actions == [
             Action("bar", Step.PULL, action_type=ActionType.RUN),
             Action("foo", Step.PULL, action_type=ActionType.RUN),
+            Action("bar", Step.OVERLAY, action_type=ActionType.RUN),
+            Action("foo", Step.OVERLAY, action_type=ActionType.RUN),
             Action("bar", Step.BUILD, action_type=ActionType.RUN),
             Action("foo", Step.BUILD, action_type=ActionType.RUN),
             Action("bar", Step.STAGE, action_type=ActionType.RUN),
@@ -130,8 +132,11 @@ class TestSequencerPlan:
         assert actions == [
             Action("bar", Step.PULL, action_type=ActionType.RUN),
             Action("foo", Step.PULL, action_type=ActionType.RUN),
+            Action("bar", Step.OVERLAY, action_type=ActionType.RUN),
+            Action("foo", Step.OVERLAY, action_type=ActionType.RUN),
             Action("bar", Step.BUILD, action_type=ActionType.RUN),
             Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("bar", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
             Action("bar", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
             Action("bar", Step.STAGE, action_type=ActionType.RUN, reason="required to build 'foo'"),
             Action("foo", Step.BUILD, action_type=ActionType.RUN),
@@ -154,6 +159,7 @@ class TestSequencerPlan:
         actions = seq.plan(Step.PRIME, part_names=["bar"])
         assert actions == [
             Action("bar", Step.PULL, action_type=ActionType.RUN),
+            Action("bar", Step.OVERLAY, action_type=ActionType.RUN),
             Action("bar", Step.BUILD, action_type=ActionType.RUN),
             Action("bar", Step.STAGE, action_type=ActionType.RUN),
             Action("bar", Step.PRIME, action_type=ActionType.RUN),
@@ -219,6 +225,7 @@ class TestSequencerPlan:
                 action_type=ActionType.SKIP,
                 reason="already ran",
             ),
+            Action(part_name="foo", step=Step.OVERLAY),
             Action(
                 part_name="foo",
                 step=Step.BUILD,
@@ -241,12 +248,12 @@ class TestSequencerStates:
             project_info=ProjectInfo(),
         )
 
-        actions = seq.plan(Step.BUILD)
+        actions = seq.plan(Step.OVERLAY)
         assert actions == [
             Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
             Action("foo", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-            Action("bar", Step.BUILD, action_type=ActionType.RUN),
-            Action("foo", Step.BUILD, action_type=ActionType.RUN),
+            Action("bar", Step.OVERLAY, action_type=ActionType.RUN),
+            Action("foo", Step.OVERLAY, action_type=ActionType.RUN),
         ]
 
     def test_plan_reload_state(self):
@@ -261,20 +268,20 @@ class TestSequencerStates:
         Path("parts/foo/state/pull").unlink()
         Path("parts/bar/state/pull").unlink()
 
-        actions = seq.plan(Step.BUILD)
+        actions = seq.plan(Step.OVERLAY)
         assert actions == [
             Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
             Action("foo", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-            Action("bar", Step.BUILD, action_type=ActionType.RUN),
-            Action("foo", Step.BUILD, action_type=ActionType.RUN),
+            Action("bar", Step.OVERLAY, action_type=ActionType.RUN),
+            Action("foo", Step.OVERLAY, action_type=ActionType.RUN),
         ]
 
         seq.reload_state()
 
-        actions = seq.plan(Step.BUILD)
+        actions = seq.plan(Step.OVERLAY)
         assert actions == [
             Action("bar", Step.PULL, action_type=ActionType.RUN),
             Action("foo", Step.PULL, action_type=ActionType.RUN),
-            Action("bar", Step.BUILD, action_type=ActionType.RUN),
-            Action("foo", Step.BUILD, action_type=ActionType.RUN),
+            Action("bar", Step.OVERLAY, action_type=ActionType.RUN),
+            Action("foo", Step.OVERLAY, action_type=ActionType.RUN),
         ]

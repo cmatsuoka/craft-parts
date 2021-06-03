@@ -288,15 +288,23 @@ class StateManager:
                     if source_handler.check_if_outdated(str(state_file)):
                         return OutdatedReport(source_modified=True)
 
-            return None
+        elif step == Step.BUILD:
+            # TODO: add overlay conditions for the build step
+            pull_stw = self._state_db.get(part_name=part.name, step=Step.PULL)
 
-        for previous_step in reversed(step.previous_steps()):
-            # Has a previous step run since this one ran? Then this
-            # step needs to be updated.
-            previous_stw = self._state_db.get(part_name=part.name, step=previous_step)
+            if pull_stw and pull_stw.is_newer_than(stw):
+                return OutdatedReport(previous_step_modified=Step.PULL)
 
-            if previous_stw and previous_stw.is_newer_than(stw):
-                return OutdatedReport(previous_step_modified=previous_step)
+        else:
+            for previous_step in reversed(step.previous_steps()):
+                # Has a previous step run since this one ran? Then this
+                # step needs to be updated.
+                previous_stw = self._state_db.get(
+                    part_name=part.name, step=previous_step
+                )
+
+                if previous_stw and previous_stw.is_newer_than(stw):
+                    return OutdatedReport(previous_step_modified=previous_step)
 
         return None
 

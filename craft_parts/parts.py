@@ -102,12 +102,18 @@ class PartSpec(BaseModel):
 
         :return: The scriptlet for the given step, if any.
         """
-        return {
-            Step.PULL: self.override_pull,
-            Step.BUILD: self.override_build,
-            Step.STAGE: self.override_stage,
-            Step.PRIME: self.override_prime,
-        }[step]
+        if step == Step.PULL:
+            return self.override_pull
+        if step == Step.OVERLAY:
+            return self.override_overlay
+        if step == Step.BUILD:
+            return self.override_build
+        if step == Step.STAGE:
+            return self.override_stage
+        if step == step.PRIME:
+            return self.override_prime
+
+        raise RuntimeError(f"cannot get scriptlet for invalid step {step!r}")
 
 
 class Part:

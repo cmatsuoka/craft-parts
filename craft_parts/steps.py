@@ -34,9 +34,10 @@ class Step(enum.IntEnum):
     """
 
     PULL = 1
-    BUILD = 2
-    STAGE = 3
-    PRIME = 4
+    OVERLAY = 2
+    BUILD = 3
+    STAGE = 4
+    PRIME = 5
 
     def __repr__(self):
         return f"{self.__class__.__name__}.{self.name}"
@@ -48,8 +49,10 @@ class Step(enum.IntEnum):
         """
         steps = []
 
-        if self >= Step.BUILD:
+        if self >= Step.OVERLAY:
             steps.append(Step.PULL)
+        if self >= Step.BUILD:
+            steps.append(Step.OVERLAY)
         if self >= Step.STAGE:
             steps.append(Step.BUILD)
         if self >= Step.PRIME:
@@ -65,6 +68,8 @@ class Step(enum.IntEnum):
         steps = []
 
         if self == Step.PULL:
+            steps.append(Step.OVERLAY)
+        if self <= Step.OVERLAY:
             steps.append(Step.BUILD)
         if self <= Step.BUILD:
             steps.append(Step.STAGE)
@@ -80,7 +85,10 @@ def dependency_prerequisite_step(step: Step) -> Optional[Step]:
     :returns: The prerequisite step.
     """
     #  With V2 plugins we don't need to repull if dependency is restaged
-    if step == Step.PULL:
+    if step <= Step.OVERLAY:
         return None
 
-    return Step.STAGE if step <= Step.STAGE else step
+    if step <= Step.STAGE:
+        return Step.STAGE
+
+    return step

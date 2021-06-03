@@ -52,7 +52,7 @@ def client(cmd: str, args: List[str]):
 
     :raise RuntimeError: If the command is invalid.
     """
-    if cmd not in ["pull", "build", "stage", "prime", "set"]:
+    if cmd not in ["pull", "overlay", "build", "stage", "prime", "set"]:
         raise RuntimeError(f"invalid command {cmd!r}")
 
     try:

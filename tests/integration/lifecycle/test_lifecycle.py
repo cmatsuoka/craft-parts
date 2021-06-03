@@ -67,6 +67,7 @@ def test_basic_lifecycle_actions(new_dir, mocker):
     actions = lf.plan(Step.PRIME, ["foobar"])
     assert actions == [
         Action("foobar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foobar", Step.OVERLAY),
         Action("foobar", Step.BUILD),
         Action("foobar", Step.STAGE),
         Action("foobar", Step.PRIME),
@@ -80,7 +81,9 @@ def test_basic_lifecycle_actions(new_dir, mocker):
     actions = lf.plan(Step.BUILD, ["bar"])
     assert actions == [
         Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("bar", Step.OVERLAY),
         Action("foo", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foo", Step.OVERLAY, reason="required to build 'bar'"),
         Action("foo", Step.BUILD, reason="required to build 'bar'"),
         Action("foo", Step.STAGE, reason="required to build 'bar'"),
         Action("bar", Step.BUILD),
@@ -93,6 +96,7 @@ def test_basic_lifecycle_actions(new_dir, mocker):
     actions = lf.plan(Step.BUILD, ["bar"])
     assert actions == [
         Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("bar", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
         Action(
             "bar", Step.BUILD, action_type=ActionType.RERUN, reason="requested step"
         ),
@@ -109,7 +113,9 @@ def test_basic_lifecycle_actions(new_dir, mocker):
     assert actions == [
         # fmt: off
         Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("bar", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
         Action("foo", Step.PULL, action_type=ActionType.RERUN, reason="'source' property changed"),
+        Action("foo", Step.OVERLAY, action_type=ActionType.RUN, reason="required to build 'bar'"),
         Action("foo", Step.BUILD, action_type=ActionType.RUN, reason="required to build 'bar'"),
         Action("foo", Step.STAGE, action_type=ActionType.RUN, reason="required to build 'bar'"),
         Action("bar", Step.BUILD, action_type=ActionType.RERUN, reason="requested step"),
@@ -122,12 +128,17 @@ def test_basic_lifecycle_actions(new_dir, mocker):
     lf = craft_parts.LifecycleManager(parts, application_name="test_demo")
     actions = lf.plan(Step.BUILD)
     assert actions == [
+        # fmt: off
         Action("foo", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
         Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
         Action("foobar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foo", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+        Action("bar", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foobar", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
         Action("foo", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
         Action("bar", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
         Action("foobar", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+        # fmt: on
     ]
 
     # Touching a source file triggers an update
@@ -139,11 +150,33 @@ def test_basic_lifecycle_actions(new_dir, mocker):
         Action("foo", Step.PULL, action_type=ActionType.UPDATE, reason="source changed"),
         Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
         Action("foobar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foo", step=Step.OVERLAY, action_type=ActionType.UPDATE, reason="'PULL' step changed"),
+        Action("bar", step=Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foobar", step=Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
         Action("foo", Step.BUILD, action_type=ActionType.UPDATE, reason="'PULL' step changed"),
         Action("foo", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foo", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
         Action("foo", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
         Action("foo", Step.STAGE, action_type=ActionType.RERUN, reason="required to build 'bar'"),
         Action("bar", Step.BUILD, action_type=ActionType.RERUN, reason="'foo' changed"),
+        Action("foobar", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+        # fmt: on
+    ]
+    with lf.action_executor() as ctx:
+        ctx.execute(actions)
+
+    # A request to build all parts again skips everything
+    actions = lf.plan(Step.BUILD)
+    assert actions == [
+        # fmt: off
+        Action("foo", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foobar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foo", step=Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+        Action("bar", step=Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foobar", step=Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foo", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+        Action("bar", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
         Action("foobar", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
         # fmt: on
     ]
@@ -218,12 +251,15 @@ class TestCleaning:
 
         assert sorted(state_dir.rglob("*")) == [
             state_dir / "build",
+            state_dir / "overlay",
             state_dir / "prime",
             state_dir / "pull",
             state_dir / "stage",
         ]
 
         self._lifecycle.clean()
+
+        # TODO: verify overlay dir
 
         assert Path("parts").exists() is False
         assert Path("stage").exists() is False
@@ -254,6 +290,7 @@ class TestCleaning:
         assert Path("prime/bar.txt").is_file()
         assert sorted(bar_state_dir.rglob("*")) == [
             bar_state_dir / "build",
+            bar_state_dir / "overlay",
             bar_state_dir / "prime",
             bar_state_dir / "pull",
             bar_state_dir / "stage",
@@ -270,15 +307,16 @@ class TestCleaning:
         foo_state_dir = Path("parts/foo/state")
         bar_state_dir = Path("parts/bar/state")
 
+        step_is_overlay_or_later = step >= Step.OVERLAY
         step_is_build_or_later = step >= Step.BUILD
         step_is_stage_or_later = step >= Step.STAGE
         step_is_prime = step == Step.PRIME
 
         self._lifecycle.clean(step)
 
-        assert Path("parts").exists() == step_is_build_or_later
-        assert Path("parts/foo/src/foo.txt").exists() == step_is_build_or_later
-        assert Path("parts/bar/src/bar.txt").exists() == step_is_build_or_later
+        assert Path("parts").exists() == step_is_overlay_or_later
+        assert Path("parts/foo/src/foo.txt").exists() == step_is_overlay_or_later
+        assert Path("parts/bar/src/bar.txt").exists() == step_is_overlay_or_later
         assert Path("parts/foo/install/foo.txt").exists() == step_is_stage_or_later
         assert Path("parts/bar/install/bar.txt").exists() == step_is_stage_or_later
         assert Path("stage/foo.txt").exists() == step_is_prime
@@ -286,9 +324,12 @@ class TestCleaning:
         assert Path("prime").is_file() is False
 
         all_states = []
-        if step_is_build_or_later:
+        if step_is_overlay_or_later:
             all_states.append(foo_state_dir / "pull")
             all_states.append(bar_state_dir / "pull")
+        if step_is_build_or_later:
+            all_states.append(foo_state_dir / "overlay")
+            all_states.append(bar_state_dir / "overlay")
         if step_is_stage_or_later:
             all_states.append(foo_state_dir / "build")
             all_states.append(bar_state_dir / "build")

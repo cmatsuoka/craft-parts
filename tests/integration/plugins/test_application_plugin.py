@@ -90,6 +90,7 @@ def test_application_plugin_happy(capfd, mocker):
     actions = lf.plan(Step.BUILD)
     assert actions == [
         Action("foo", Step.PULL, action_type=ActionType.RUN),
+        Action("foo", Step.OVERLAY, action_type=ActionType.RUN),
         Action("foo", Step.BUILD, action_type=ActionType.RUN),
     ]
 
@@ -100,7 +101,7 @@ def test_application_plugin_happy(capfd, mocker):
     mock_install_build_snaps = mocker.patch("craft_parts.packages.snaps.install_snaps")
 
     with lf.action_executor() as exe:
-        exe.execute(actions[1])
+        exe.execute(actions[2])
 
     out, _ = capfd.readouterr()
     assert out == "hello application plugin\n"
