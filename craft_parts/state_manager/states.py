@@ -27,6 +27,7 @@ from craft_parts.parts import Part
 from craft_parts.steps import Step
 
 from .build_state import BuildState
+from .overlay_state import OverlayState
 from .prime_state import PrimeState
 from .pull_state import PullState
 from .stage_state import StageState
@@ -57,6 +58,8 @@ def load_state(part: Part, step: Step) -> Optional[StepState]:
 
     if step == Step.PULL:
         state_class = PullState
+    elif step == Step.OVERLAY:
+        state_class = OverlayState
     elif step == Step.BUILD:
         state_class = BuildState
     elif step == Step.STAGE:

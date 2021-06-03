@@ -97,6 +97,8 @@ class PartHandler:
 
         if action.step == Step.PULL:
             handler = self._run_pull
+        elif action.step == Step.OVERLAY:
+            handler = self._run_overlay
         elif action.step == Step.BUILD:
             handler = self._run_build
         elif action.step == Step.STAGE:
@@ -104,7 +106,7 @@ class PartHandler:
         elif action.step == Step.PRIME:
             handler = self._run_prime
         else:
-            raise RuntimeError("cannot run action for invalid step {action.step!r}")
+            raise RuntimeError(f"cannot run action for invalid step {action.step!r}")
 
         callbacks.run_pre_step(step_info)
         state = handler(step_info)
@@ -136,6 +138,22 @@ class PartHandler:
         )
 
         return state
+
+    def _run_overlay(self, step_info: StepInfo) -> StepState:
+        self._make_dirs()
+
+        contents = self._run_step(
+            step_info=step_info,
+            scriptlet_name="override-overlay",
+            work_dir=self._part.stage_dir,
+        )
+
+        return states.OverlayState(
+            part_properties=self._part_properties,
+            project_options=step_info.project_options,
+            files=contents.files,
+            directories=contents.dirs,
+        )
 
     def _run_build(self, step_info: StepInfo, *, update=False) -> StepState:
         self._make_dirs()
@@ -252,6 +270,8 @@ class PartHandler:
 
         if action.step == Step.PULL:
             handler = self._update_pull
+        elif action.step == Step.OVERLAY:
+            handler = self._update_overlay
         elif action.step == Step.BUILD:
             handler = self._update_build
         else:
@@ -300,6 +320,16 @@ class PartHandler:
         self._source_handler.check_if_outdated(str(state_file))
         self._source_handler.update()
 
+    def _update_overlay(self, step_info: StepInfo) -> None:
+        """Handle update action for the overlay step.
+
+        The overlay update handler is empty (out of date overlay must not rerun,
+        otherwise its state will be cleaned and build will run again instead of
+        just updating).
+
+        :param step_info: The step information.
+        """
+
     def _update_build(self, step_info: StepInfo) -> None:
         """Handle update action for the build step.
 
@@ -347,6 +377,8 @@ class PartHandler:
 
         if step == Step.PULL:
             handler = self._clean_pull
+        elif step == Step.OVERLAY:
+            handler = self._clean_overlay
         elif step == Step.BUILD:
             handler = self._clean_build
         elif step == Step.STAGE:
@@ -369,6 +401,10 @@ class PartHandler:
 
         # remove the source tree
         _remove(self._part.part_src_dir)
+
+    def _clean_overlay(self) -> None:
+        # TODO: implement clean_overlay
+        _ = self
 
     def _clean_build(self) -> None:
         """Remove the current part's build step files and state."""

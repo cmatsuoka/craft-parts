@@ -52,6 +52,9 @@ def test_ctl_client_steps(new_dir, capfd, mocker):
             override-pull: |
               echo "pull step"
               partsctl pull
+            override-overlay: |
+              echo "overlay step"
+              partsctl overlay
             override-build: |
               echo "build step"
               partsctl build
@@ -74,6 +77,7 @@ def test_ctl_client_steps(new_dir, capfd, mocker):
     actions = lf.plan(Step.PRIME)
     assert actions == [
         Action("foo", Step.PULL),
+        Action("foo", Step.OVERLAY),
         Action("foo", Step.BUILD),
         Action("foo", Step.STAGE),
         Action("foo", Step.PRIME),
@@ -87,20 +91,29 @@ def test_ctl_client_steps(new_dir, capfd, mocker):
         assert Path("stage/foo.txt").exists() is False
         assert Path("prime/foo.txt").exists() is False
 
+        # TODO: fix overlay file test
+
         ctx.execute(actions[1])
+        captured = capfd.readouterr()
+        assert captured.out == "overlay step\n"
+        assert Path("parts/foo/install/foo.txt").exists() is False
+        assert Path("stage/foo.txt").exists() is False
+        assert Path("prime/foo.txt").exists() is False
+
+        ctx.execute(actions[2])
         captured = capfd.readouterr()
         assert captured.out == "build step\n"
         assert Path("parts/foo/install/foo.txt").exists()
         assert Path("stage/foo.txt").exists() is False
         assert Path("prime/foo.txt").exists() is False
 
-        ctx.execute(actions[2])
+        ctx.execute(actions[3])
         captured = capfd.readouterr()
         assert captured.out == "stage step\n"
         assert Path("stage/foo.txt").exists()
         assert Path("prime/foo.txt").exists() is False
 
-        ctx.execute(actions[3])
+        ctx.execute(actions[4])
         captured = capfd.readouterr()
         assert captured.out == "prime step\n"
         assert Path("prime/foo.txt").exists()
@@ -114,6 +127,7 @@ def test_ctl_client_step_argments(new_dir, step):
           foo:
             plugin: nil
             override-pull: partsctl pull argument
+            override-overlay: partsctl overlay argument
             override-build: partsctl build argument
             override-stage: partsctl stage argument
             override-prime: partsctl prime argument

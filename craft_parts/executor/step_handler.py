@@ -86,6 +86,8 @@ class StepHandler:
 
         if step == Step.PULL:
             handler = self._builtin_pull
+        elif step == Step.OVERLAY:
+            handler = self._builtin_overlay
         elif step == Step.BUILD:
             handler = self._builtin_build
         elif step == Step.STAGE:
@@ -102,6 +104,10 @@ class StepHandler:
     def _builtin_pull(self) -> StepContents:
         if self._source_handler:
             self._source_handler.pull()
+        return StepContents()
+
+    def _builtin_overlay(self) -> StepContents:
+        _ = self
         return StepContents()
 
     def _builtin_build(self) -> StepContents:
@@ -271,7 +277,7 @@ class StepHandler:
             scriptlet_name=scriptlet_name,
         )
 
-        if function_name in ["pull", "build", "stage", "prime"]:
+        if function_name in ["pull", "overlay", "build", "stage", "prime"]:
             if len(function_args) > 0:
                 raise invalid_control_api_call(
                     message=f"invalid arguments to function {function_name!r}",
