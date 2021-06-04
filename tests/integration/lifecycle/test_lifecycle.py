@@ -66,11 +66,17 @@ def test_basic_lifecycle_actions(new_dir, mocker):
     lf = craft_parts.LifecycleManager(parts, application_name="test_demo")
     actions = lf.plan(Step.PRIME, ["foobar"])
     assert actions == [
+        # fmt: off
         Action("foobar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foo", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("foo", Step.OVERLAY, action_type=ActionType.RUN, reason="required to overlay 'foobar'"),
+        Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+        Action("bar", Step.OVERLAY, action_type=ActionType.RUN, reason="required to overlay 'foobar'"),
         Action("foobar", Step.OVERLAY),
         Action("foobar", Step.BUILD),
         Action("foobar", Step.STAGE),
         Action("foobar", Step.PRIME),
+        # fmt: on
     ]
     with lf.action_executor() as ctx:
         ctx.execute(actions)
@@ -81,9 +87,9 @@ def test_basic_lifecycle_actions(new_dir, mocker):
     actions = lf.plan(Step.BUILD, ["bar"])
     assert actions == [
         Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-        Action("bar", Step.OVERLAY),
+        Action("bar", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
         Action("foo", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-        Action("foo", Step.OVERLAY, reason="required to build 'bar'"),
+        Action("foo", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
         Action("foo", Step.BUILD, reason="required to build 'bar'"),
         Action("foo", Step.STAGE, reason="required to build 'bar'"),
         Action("bar", Step.BUILD),
@@ -95,11 +101,11 @@ def test_basic_lifecycle_actions(new_dir, mocker):
     lf = craft_parts.LifecycleManager(parts, application_name="test_demo")
     actions = lf.plan(Step.BUILD, ["bar"])
     assert actions == [
+        # fmt: off
         Action("bar", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
         Action("bar", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
-        Action(
-            "bar", Step.BUILD, action_type=ActionType.RERUN, reason="requested step"
-        ),
+        Action("bar", Step.BUILD, action_type=ActionType.RERUN, reason="requested step"),
+        # fmt: on
     ]
     with lf.action_executor() as ctx:
         ctx.execute(actions)

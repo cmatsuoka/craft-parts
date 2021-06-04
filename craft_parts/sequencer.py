@@ -19,9 +19,10 @@
 import logging
 from typing import Dict, List, Optional, Sequence
 
-from craft_parts import parts, steps
+from craft_parts import overlay_manager, parts, steps
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import ProjectInfo
+from craft_parts.overlay_manager import OverlayManager
 from craft_parts.parts import Part, part_list_by_name, sort_parts
 from craft_parts.state_manager import StateManager, states
 from craft_parts.steps import Step
@@ -39,8 +40,10 @@ class Sequencer:
     def __init__(self, *, part_list: List[Part], project_info: ProjectInfo):
         self._part_list = sort_parts(part_list)
         self._project_info = project_info
-        self._sm = StateManager(project_info=project_info, part_list=part_list)
+        self._sm = StateManager(project_info=project_info, part_list=self._part_list)
+        self._om = OverlayManager(part_list=self._part_list)
         self._actions: List[Action] = []
+        self._base_layer_hash = bytes([0])  # FIXME: receive from caller
 
     def plan(self, target_step: Step, part_names: Sequence[str] = None) -> List[Action]:
         """Determine the list of steps to execute for each part.
@@ -71,6 +74,12 @@ class Sequencer:
         for current_step in target_step.previous_steps() + [target_step]:
             for part in selected_parts:
                 logger.debug("process %s:%s", part.name, current_step)
+
+                # if current_step == Step.OVERLAY and self._sm.should_step_run(
+                #     part, Step.OVERLAY
+                # ):
+                #     self._add_layer_dependencies(part)
+
                 self._add_step_actions(
                     current_step=current_step,
                     target_step=target_step,
@@ -161,6 +170,10 @@ class Sequencer:
     ) -> None:
         self._process_dependencies(part, step)
 
+        layer_hash = None
+        if step == Step.OVERLAY:
+            layer_hash = self._ensure_overlay_consistency(part)
+
         if rerun:
             self._add_action(part, step, action_type=ActionType.RERUN, reason=reason)
         else:
@@ -169,42 +182,37 @@ class Sequencer:
         state: states.StepState
         part_properties = part.spec.marshal()
 
+        # create step state
+
         if step == Step.PULL:
             state = states.PullState(
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
-                assets={},  # TODO: obtain pull assets
             )
 
         elif step == Step.OVERLAY:
             state = states.OverlayState(
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
-                files=set(),
-                directories=set(),
+                layer_hash=layer_hash,
             )
 
         elif step == Step.BUILD:
             state = states.BuildState(
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
-                assets={},  # TODO: obtain build assets
             )
 
         elif step == Step.STAGE:
             state = states.StageState(
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
-                files=set(),
-                directories=set(),
             )
 
         elif step == Step.PRIME:
             state = states.PrimeState(
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
-                files=set(),
-                directories=set(),
             )
 
         else:
@@ -238,6 +246,43 @@ class Sequencer:
         self._actions.append(
             Action(part.name, step, action_type=action_type, reason=reason)
         )
+
+    def _add_layer_dependencies(self, top_part: Part) -> None:
+        for part in self._part_list:
+            if part.name == top_part.name:
+                return
+            if self._sm.should_step_run(part, Step.OVERLAY):
+                self._add_all_actions(
+                    target_step=Step.OVERLAY,
+                    part_names=[part.name],
+                    reason=f"required to overlay {top_part.name!r}",
+                )
+
+    def _ensure_overlay_consistency(self, top_part: Part) -> bytes:
+        if top_part.name not in [p.name for p in self._part_list]:
+            raise RuntimeError(f"part {top_part!r} not in parts list")
+
+        previous_layer_hash = self._base_layer_hash
+
+        for part in self._part_list:
+            layer_hash = overlay_manager.compute_layer_digest(part, previous_layer_hash)
+
+            if part.name == top_part.name:
+                return layer_hash
+
+            state_layer_hash = self._sm.get_layer_hash(part)
+
+            if not state_layer_hash or state_layer_hash != layer_hash:
+                self._add_all_actions(
+                    target_step=Step.OVERLAY,
+                    part_names=[part.name],
+                    reason=f"required to overlay {top_part.name!r}",
+                )
+
+            previous_layer_hash = layer_hash
+
+        # execution should never reach this line
+        raise RuntimeError(f"part {top_part!r} not in parts list")
 
 
 _step_verb: Dict[Step, str] = {
