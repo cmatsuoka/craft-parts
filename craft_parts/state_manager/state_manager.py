@@ -394,6 +394,11 @@ class StateManager:
         """Mark the given part and step as updated."""
         self._state_db.rewrap(part_name=part.name, step=step, step_updated=True)
 
+    def get_layer_hash(self, part: Part) -> Optional[bytes]:
+        """Get the overlay state for the given part."""
+        stw = self._state_db.get(part_name=part.name, step=Step.OVERLAY)
+        return stw.state.layer_hash if stw else None
+
 
 def _sort_steps_by_state_timestamp(
     part_list: List[Part],
