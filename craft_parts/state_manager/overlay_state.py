@@ -24,7 +24,7 @@ from .step_state import StepState
 class OverlayState(StepState):
     """Context information for the overlay step."""
 
-    layer_hash: bytes = b""
+    layer_hash: str = ""
 
     @classmethod
     def unmarshal(cls, data: Dict[str, Any]) -> "OverlayState":

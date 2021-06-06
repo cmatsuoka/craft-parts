@@ -170,6 +170,7 @@ class Part:
         self._dirs = project_dirs
         self._part_dir = project_dirs.parts_dir / name
         self._part_dir = project_dirs.parts_dir / name
+        self.layer_hash = b""
 
         try:
             self.spec = PartSpec.unmarshal(data)
