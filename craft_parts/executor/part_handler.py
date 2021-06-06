@@ -76,6 +76,9 @@ class PartHandler:
         self.build_packages = _get_build_packages(part=self._part, plugin=self._plugin)
         self.build_snaps = _get_build_snaps(part=self._part, plugin=self._plugin)
 
+        last_part = self._part_list[-1]
+        self._overlay_hash = last_part.layer_hash
+
     def run_action(self, action: Action) -> None:
         """Execute the given action for this part using a plugin.
 
@@ -150,6 +153,7 @@ class PartHandler:
             project_options=step_info.project_options,
             files=contents.files,
             directories=contents.dirs,
+            layer_hash=self._part.layer_hash.hex(),
         )
 
     def _run_build(self, step_info: StepInfo, *, update=False) -> StepState:
@@ -198,6 +202,7 @@ class PartHandler:
             part_properties=self._part_properties,
             project_options=step_info.project_options,
             assets=assets,
+            overlay_hash=self._overlay_hash.hex(),
         )
         return state
 
@@ -215,6 +220,7 @@ class PartHandler:
             project_options=step_info.project_options,
             files=contents.files,
             directories=contents.dirs,
+            overlay_hash=self._overlay_hash.hex(),
         )
         return state
 

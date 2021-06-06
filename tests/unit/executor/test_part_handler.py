@@ -100,6 +100,7 @@ class TestPartHandling:
                 "installed-packages": ["hello=2.10"],
                 "installed-snaps": ["snapcraft=6466"],
             },
+            overlay_hash="",
         )
 
     def test_run_stage(self, mocker):
@@ -114,6 +115,7 @@ class TestPartHandling:
             project_options=self._part_info.project_options,
             files={"file"},
             directories={"dir"},
+            overlay_hash="",
         )
 
     def test_run_prime(self, mocker):

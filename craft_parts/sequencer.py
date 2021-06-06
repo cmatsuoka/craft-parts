@@ -37,13 +37,20 @@ class Sequencer:
     :param project_info: Information about this project.
     """
 
-    def __init__(self, *, part_list: List[Part], project_info: ProjectInfo):
+    def __init__(
+        self,
+        *,
+        part_list: List[Part],
+        project_info: ProjectInfo,
+        base_layer_hash: bytes = b"",
+    ):
         self._part_list = sort_parts(part_list)
         self._project_info = project_info
         self._sm = StateManager(project_info=project_info, part_list=self._part_list)
         self._om = OverlayManager(part_list=self._part_list)
         self._actions: List[Action] = []
-        self._base_layer_hash = bytes([0])  # FIXME: receive from caller
+        self._base_layer_hash = base_layer_hash
+        self._overlay_hash = b""
 
     def plan(self, target_step: Step, part_names: Sequence[str] = None) -> List[Action]:
         """Determine the list of steps to execute for each part.
@@ -70,15 +77,26 @@ class Sequencer:
         reason: Optional[str] = None,
     ) -> None:
         selected_parts = part_list_by_name(part_names, self._part_list)
+        if not selected_parts:
+            return
+
+        last_part = self._part_list[-1]
 
         for current_step in target_step.previous_steps() + [target_step]:
             for part in selected_parts:
                 logger.debug("process %s:%s", part.name, current_step)
 
-                # if current_step == Step.OVERLAY and self._sm.should_step_run(
-                #     part, Step.OVERLAY
-                # ):
-                #     self._add_layer_dependencies(part)
+                if current_step == Step.OVERLAY:
+                    part.layer_hash = self._ensure_overlay_consistency(part)
+
+                if not self._overlay_hash:
+                    # The overlay step for all parts should run before we build a part
+                    # with overlay visibility or before we stage a part that declares
+                    # overlay parameters.
+                    if (current_step == Step.BUILD and part.sees_overlay) or (
+                        current_step == Step.STAGE and part.has_overlay
+                    ):
+                        self._overlay_hash = self._ensure_overlay_consistency(last_part)
 
                 self._add_step_actions(
                     current_step=current_step,
@@ -170,10 +188,6 @@ class Sequencer:
     ) -> None:
         self._process_dependencies(part, step)
 
-        layer_hash = None
-        if step == Step.OVERLAY:
-            layer_hash = self._ensure_overlay_consistency(part)
-
         if rerun:
             self._add_action(part, step, action_type=ActionType.RERUN, reason=reason)
         else:
@@ -194,19 +208,21 @@ class Sequencer:
             state = states.OverlayState(
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
-                layer_hash=layer_hash,
+                layer_hash=part.layer_hash.hex(),
             )
 
         elif step == Step.BUILD:
             state = states.BuildState(
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
+                overlay_hash=self._overlay_hash.hex(),
             )
 
         elif step == Step.STAGE:
             state = states.StageState(
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
+                overlay_hash=self._overlay_hash.hex(),
             )
 
         elif step == Step.PRIME:
@@ -247,18 +263,21 @@ class Sequencer:
             Action(part.name, step, action_type=action_type, reason=reason)
         )
 
-    def _add_layer_dependencies(self, top_part: Part) -> None:
-        for part in self._part_list:
-            if part.name == top_part.name:
-                return
-            if self._sm.should_step_run(part, Step.OVERLAY):
-                self._add_all_actions(
-                    target_step=Step.OVERLAY,
-                    part_names=[part.name],
-                    reason=f"required to overlay {top_part.name!r}",
-                )
-
     def _ensure_overlay_consistency(self, top_part: Part) -> bytes:
+        """Make sure overlay step layers are consistent.
+
+        The overlay step layers are stacked according to the part order. Each part
+        is given an identificaton value based on its overlay parameters and the value
+        of the previous layer in the stack, which is used to make sure the overlay
+        parameters for all previous layers remain the same. If any previous part
+        has not run, or had its parameters changed, it must run again to ensure
+        overlay consistency.
+
+        :param top_part: The part currently the top of the layer stack and whose
+            consistency is to be verified.
+
+        :return: This part's identification value.
+        """
         if top_part.name not in [p.name for p in self._part_list]:
             raise RuntimeError(f"part {top_part!r} not in parts list")
 
