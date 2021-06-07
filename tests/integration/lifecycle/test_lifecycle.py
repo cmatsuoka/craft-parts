@@ -206,9 +206,8 @@ def test_basic_lifecycle_actions(new_dir, mocker):
 
 @pytest.mark.usefixtures("new_dir")
 class TestCleaning:
-    @pytest.fixture(autouse=True)
-    def setup_method_fixture(self, new_dir):
-        # pylint: disable=attribute-defined-outside-init
+    @pytest.fixture
+    def lifecycle(self, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -227,11 +226,9 @@ class TestCleaning:
 
         parts = yaml.safe_load(parts_yaml)
 
-        self._lifecycle = craft_parts.LifecycleManager(
+        return craft_parts.LifecycleManager(
             parts, application_name="test_clean", cache_dir=new_dir
         )
-
-        # pylint: enable=attribute-defined-outside-init
 
     @pytest.mark.parametrize(
         "step,test_dir,state_file",
@@ -242,24 +239,24 @@ class TestCleaning:
             (Step.PRIME, "prime", "prime"),
         ],
     )
-    def test_clean_step(self, step, test_dir, state_file):
-        actions = self._lifecycle.plan(step)
+    def test_clean_step(self, lifecycle, step, test_dir, state_file):
+        actions = lifecycle.plan(step)
 
-        with self._lifecycle.action_executor() as ctx:
+        with lifecycle.action_executor() as ctx:
             ctx.execute(actions)
 
         assert Path(test_dir, "foo.txt").is_file()
         assert Path("parts/foo/state", state_file).is_file()
 
-        self._lifecycle.clean(step, part_names=["foo"])
+        lifecycle.clean(step, part_names=["foo"])
 
         assert Path(test_dir, "foo.txt").is_file() is False
         assert Path("parts/foo/state", state_file).is_file() is False
 
-    def test_clean_default(self):
-        actions = self._lifecycle.plan(Step.PRIME)
+    def test_clean_default(self, lifecycle):
+        actions = lifecycle.plan(Step.PRIME)
 
-        with self._lifecycle.action_executor() as ctx:
+        with lifecycle.action_executor() as ctx:
             ctx.execute(actions)
 
         assert Path("parts/foo/src/foo.txt").is_file()
@@ -277,7 +274,7 @@ class TestCleaning:
             state_dir / "stage",
         ]
 
-        self._lifecycle.clean()
+        lifecycle.clean()
 
         # TODO: verify overlay dir
 
@@ -287,16 +284,16 @@ class TestCleaning:
 
         assert list(state_dir.rglob("*")) == []
 
-    def test_clean_part(self):
-        actions = self._lifecycle.plan(Step.PRIME)
+    def test_clean_part(self, lifecycle):
+        actions = lifecycle.plan(Step.PRIME)
 
-        with self._lifecycle.action_executor() as ctx:
+        with lifecycle.action_executor() as ctx:
             ctx.execute(actions)
 
         foo_state_dir = Path("parts/foo/state")
         bar_state_dir = Path("parts/bar/state")
 
-        self._lifecycle.clean(part_names=["foo"])
+        lifecycle.clean(part_names=["foo"])
 
         assert Path("parts/foo/src/foo.txt").is_file() is False
         assert Path("parts/foo/install/foo.txt").is_file() is False
@@ -317,11 +314,11 @@ class TestCleaning:
         ]
 
     @pytest.mark.parametrize("step", list(Step))
-    def test_clean_all_parts(self, step):
+    def test_clean_all_parts(self, lifecycle, step):
         # always run all steps
-        actions = self._lifecycle.plan(Step.PRIME)
+        actions = lifecycle.plan(Step.PRIME)
 
-        with self._lifecycle.action_executor() as ctx:
+        with lifecycle.action_executor() as ctx:
             ctx.execute(actions)
 
         foo_state_dir = Path("parts/foo/state")
@@ -332,7 +329,7 @@ class TestCleaning:
         step_is_stage_or_later = step >= Step.STAGE
         step_is_prime = step == Step.PRIME
 
-        self._lifecycle.clean(step)
+        lifecycle.clean(step)
 
         assert Path("parts").exists() == step_is_overlay_or_later
         assert Path("parts/foo/src/foo.txt").exists() == step_is_overlay_or_later

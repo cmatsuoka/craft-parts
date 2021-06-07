@@ -298,6 +298,12 @@ class StateManager:
                     if source_handler.check_if_outdated(str(state_file)):
                         return OutdatedReport(source_modified=True)
 
+        # elif step == Step.OVERLAY:
+        # TODO: Overlay is outdated if overlay-packages in pull state changed.
+        #       these are not part of properties of interest for dirty checking
+        #       because we don't want to rerun overlay if source properties or
+        #       stage packages are changed.
+
         elif step == Step.BUILD:
             # TODO: add overlay conditions for the build step
             pull_stw = self._state_db.get(part_name=part.name, step=Step.PULL)
