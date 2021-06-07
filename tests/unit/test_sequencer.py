@@ -190,11 +190,20 @@ def test_sequencer_ensure_overlay_consistency(mocker):
 
     mock_add_all_actions = mocker.patch.object(seq, "_add_all_actions")
 
-    value = seq._ensure_overlay_consistency(p2)
-    mock_add_all_actions.assert_called_once_with(
-        target_step=Step.OVERLAY,
-        part_names=["p1"],
-        reason="required to overlay 'p2'",
+    value = seq._ensure_overlay_consistency(p2, reason="because I say so")
+    mock_add_all_actions.assert_has_calls(
+        [
+            mocker.call(
+                target_step=Step.OVERLAY,
+                part_names=["p1"],
+                reason="because I say so",
+            ),
+            mocker.call(
+                target_step=Step.OVERLAY,
+                part_names=["p2"],
+                reason="because I say so",
+            ),
+        ]
     )
     assert value.hex() == "78cdef1a19fdd12023e37ab5b62381e2d353f4ff"
 
@@ -216,8 +225,34 @@ def test_sequencer_ensure_overlay_consistency_no_run(mocker):
 
     mock_add_all_actions = mocker.patch.object(seq, "_add_all_actions")
 
-    value = seq._ensure_overlay_consistency(p2)
+    value = seq._ensure_overlay_consistency(p2, skip_last=True)
     mock_add_all_actions.assert_not_called()
+    assert value.hex() == "78cdef1a19fdd12023e37ab5b62381e2d353f4ff"
+
+
+@pytest.mark.usefixtures("new_dir")
+def test_sequencer_ensure_overlay_consistency_dont_skip_last(mocker):
+    info = ProjectInfo(arch="aarch64", application_name="test")
+    p1 = Part("p1", {})
+    p2 = Part("p2", {})
+
+    state = states.OverlayState(
+        # expected hash for this layer
+        layer_hash="df58248c414f342c81e056b40bee12d17a08bf61"
+    )
+    Path("parts/p1/state").mkdir(parents=True)
+    state.write(Path("parts/p1/state/overlay"))
+
+    seq = Sequencer(part_list=[p1, p2], project_info=info)
+
+    mock_add_all_actions = mocker.patch.object(seq, "_add_all_actions")
+
+    value = seq._ensure_overlay_consistency(p2)
+    mock_add_all_actions.assert_called_once_with(
+        target_step=Step.OVERLAY,
+        part_names=["p2"],
+        reason=None,
+    )
     assert value.hex() == "78cdef1a19fdd12023e37ab5b62381e2d353f4ff"
 
 
@@ -238,10 +273,12 @@ def test_sequencer_ensure_overlay_consistency_rerun(mocker):
 
     mock_add_all_actions = mocker.patch.object(seq, "_add_all_actions")
 
-    value = seq._ensure_overlay_consistency(p2)
-    mock_add_all_actions.assert_called_once_with(
+    value = seq._ensure_overlay_consistency(
+        p2, reason="it is your destiny", skip_last=True
+    )
+    mock_add_all_actions.assert_called_with(
         target_step=Step.OVERLAY,
         part_names=["p1"],
-        reason="required to overlay 'p2'",
+        reason="it is your destiny",
     )
     assert value.hex() == "78cdef1a19fdd12023e37ab5b62381e2d353f4ff"

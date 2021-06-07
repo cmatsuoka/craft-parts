@@ -87,16 +87,24 @@ class Sequencer:
                 logger.debug("process %s:%s", part.name, current_step)
 
                 if current_step == Step.OVERLAY:
-                    part.layer_hash = self._ensure_overlay_consistency(part)
+                    part.layer_hash = self._ensure_overlay_consistency(
+                        part,
+                        reason=f"required to overlay {part.name!r}",
+                        skip_last=True,
+                    )
 
-                if not self._overlay_hash:
+                elif not self._overlay_hash:
                     # The overlay step for all parts should run before we build a part
                     # with overlay visibility or before we stage a part that declares
                     # overlay parameters.
                     if (current_step == Step.BUILD and part.sees_overlay) or (
                         current_step == Step.STAGE and part.has_overlay
                     ):
-                        self._overlay_hash = self._ensure_overlay_consistency(last_part)
+                        verb = _step_verb[current_step]
+                        self._overlay_hash = self._ensure_overlay_consistency(
+                            last_part,
+                            reason=f"required to {verb} {part.name!r}",
+                        )
 
                 self._add_step_actions(
                     current_step=current_step,
@@ -263,7 +271,9 @@ class Sequencer:
             Action(part.name, step, action_type=action_type, reason=reason)
         )
 
-    def _ensure_overlay_consistency(self, top_part: Part) -> bytes:
+    def _ensure_overlay_consistency(
+        self, top_part: Part, reason: Optional[str] = None, skip_last: bool = False
+    ) -> bytes:
         """Make sure overlay step layers are consistent.
 
         The overlay step layers are stacked according to the part order. Each part
@@ -286,7 +296,7 @@ class Sequencer:
         for part in self._part_list:
             layer_hash = overlay_manager.compute_layer_digest(part, previous_layer_hash)
 
-            if part.name == top_part.name:
+            if skip_last and part.name == top_part.name:
                 return layer_hash
 
             state_layer_hash = self._sm.get_layer_hash(part)
@@ -295,8 +305,11 @@ class Sequencer:
                 self._add_all_actions(
                     target_step=Step.OVERLAY,
                     part_names=[part.name],
-                    reason=f"required to overlay {top_part.name!r}",
+                    reason=reason,
                 )
+
+            if part.name == top_part.name:
+                return layer_hash
 
             previous_layer_hash = layer_hash
 
