@@ -52,6 +52,9 @@ class Sequencer:
         self._base_layer_hash = base_layer_hash
         self._overlay_hash = b""
 
+        last_part = self._part_list[-1]
+        self._initial_overlay_hash = self._sm.get_layer_hash(last_part)
+
     def plan(self, target_step: Step, part_names: Sequence[str] = None) -> List[Action]:
         """Determine the list of steps to execute for each part.
 
@@ -144,10 +147,30 @@ class Sequencer:
         #    properties used by the step have changed, project options have changed,
         #    or dependencies have been re-staged.
 
+        if current_step == Step.OVERLAY:
+            # Layers depend on the integrity of its validation hash
+            if part.layer_hash != self._sm.get_layer_hash(part):
+                logger.debug("%s:%s changed layer hash", part.name, current_step)
+                self._run_step(part, current_step, reason="previous layer changed")
+                return
+
+        elif current_step == Step.BUILD:
+            # If a part has overlay visibility, rebuild it if overlay changed
+            if part.sees_overlay and self._overlay_hash != self._initial_overlay_hash:
+                logger.debug("%s:%s can see overlay and it changed", part.name, current_step)
+                self._rerun_step(part, current_step, reason="overlay changed")
+                return
+
+        elif current_step == Step.STAGE:
+            # If a part declares overlay parameters, restage it if overlay changed
+            if part.has_overlay and self._overlay_hash != self._initial_overlay_hash:
+                logger.debug("%s:%s has overlay and it changed", part.name, current_step)
+                self._rerun_step(part, current_step, reason="overlay changed")
+                return
+
         dirty_report = self._sm.check_if_dirty(part, current_step)
         if dirty_report:
             logger.debug("%s:%s is dirty", part.name, current_step)
-
             self._rerun_step(part, current_step, reason=dirty_report.reason())
             return
 
@@ -159,11 +182,7 @@ class Sequencer:
         if outdated_report:
             logger.debug("%s:%s is outdated", part.name, current_step)
 
-            if current_step in (Step.PULL, Step.OVERLAY, Step.BUILD):
-                self._update_step(part, current_step, reason=outdated_report.reason())
-            else:
-                self._rerun_step(part, current_step, reason=outdated_report.reason())
-
+            self._update_step(part, current_step, reason=outdated_report.reason())
             self._sm.mark_step_updated(part, current_step)
             return
 
