@@ -297,3 +297,129 @@ class TestOverlayStageDependency:
             Action("p1", Step.STAGE)
             # fmt: on
         ]
+
+
+@pytest.mark.usefixtures("new_dir")
+class TestOverlayInvalidationFlow:
+    def test_pull_dirty_single_part(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              p1:
+                plugin: nil
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = lf.plan(Step.PRIME)
+        assert actions == [
+            Action("p1", Step.PULL),
+            Action("p1", Step.OVERLAY),
+            Action("p1", Step.BUILD),
+            Action("p1", Step.STAGE),
+            Action("p1", Step.PRIME),
+        ]
+
+        with lf.action_executor() as ctx:
+            ctx.execute(actions)
+
+        # change a property of interest
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              p1:
+                plugin: nil
+                source: .
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = lf.plan(Step.PRIME)
+        assert actions == [
+            # fmt: off
+            Action("p1", Step.PULL, action_type=ActionType.RERUN, reason="'source' property changed"),
+            Action("p1", Step.OVERLAY),
+            Action("p1", Step.BUILD),
+            Action("p1", Step.STAGE),
+            Action("p1", Step.PRIME),
+            # fmt: on
+        ]
+
+    def test_pull_dirty_multipart(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              p1:
+                plugin: nil
+                overlay-visibility: True
+              p2:
+                plugin: nil
+                override-overlay: echo overlay
+              p3:
+                plugin: nil
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = lf.plan(Step.PRIME)
+        assert actions == [
+            Action("p1", Step.PULL),
+            Action("p2", Step.PULL),
+            Action("p3", Step.PULL),
+            Action("p1", Step.OVERLAY),
+            Action("p2", Step.OVERLAY),
+            Action("p3", Step.OVERLAY),
+            Action("p1", Step.BUILD),
+            Action("p2", Step.BUILD),
+            Action("p3", Step.BUILD),
+            Action("p1", Step.STAGE),
+            Action("p2", Step.STAGE),
+            Action("p3", Step.STAGE),
+            Action("p1", Step.PRIME),
+            Action("p2", Step.PRIME),
+            Action("p3", Step.PRIME),
+        ]
+
+        with lf.action_executor() as ctx:
+            ctx.execute(actions)
+
+        # change a property of interest in p2
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              p1:
+                plugin: nil
+                overlay-visibility: True
+              p2:
+                plugin: nil
+                overlay-packages: [hello]
+              p3:
+                plugin: nil
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = lf.plan(Step.PRIME)
+        assert actions == [
+            # fmt: off
+            Action("p1", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p2", Step.PULL, action_type=ActionType.RERUN, reason="'overlay-packages' property changed"),
+            Action("p3", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p1", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p2", Step.OVERLAY),
+            Action("p3", Step.OVERLAY, action_type=ActionType.RUN, reason="previous layer changed"),
+            Action("p1", Step.BUILD, action_type=ActionType.RERUN, reason="overlay changed"),
+            Action("p2", Step.BUILD),
+            Action("p3", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p1", Step.STAGE),
+            Action("p2", Step.STAGE),
+            Action("p3", Step.STAGE, action_type=ActionType.UPDATE, reason="'OVERLAY' step changed"),
+            Action("p1", Step.PRIME),
+            Action("p2", Step.PRIME),
+            Action("p3", Step.PRIME, action_type=ActionType.UPDATE, reason="'STAGE' step changed"),
+            # fmt: on
+        ]

@@ -62,6 +62,7 @@ class PullState(StepState):
             "source-subdir",
             "override-pull",
             "stage-packages",
+            "overlay-packages",
         ]
 
         properties: Dict[str, Any] = {}
