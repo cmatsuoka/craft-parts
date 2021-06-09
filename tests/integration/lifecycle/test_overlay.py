@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import textwrap
+from typing import List
 
 import pytest
 import yaml
@@ -498,3 +499,245 @@ class TestOverlayInvalidationFlow:
             Action("p3", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
             # fmt: on
         ]
+
+
+class TestOverlaySpecScenarios:
+    def test_overlay_spec_scenario_1(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                after: [B]
+              B:
+                plugin: nil
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = _filter_skip(lf.plan(Step.STAGE))
+        assert actions == [
+            Action("B", Step.PULL),
+            Action("A", Step.PULL),
+            Action("B", Step.OVERLAY),
+            Action("A", Step.OVERLAY),
+            Action("B", Step.BUILD),
+            Action("B", Step.STAGE, reason="required to build 'A'"),
+            Action("A", Step.BUILD),
+            Action("A", Step.STAGE),
+        ]
+
+    def test_overlay_spec_scenario_2_stage_all(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                override-overlay: echo A
+              B:
+                plugin: nil
+                override-overlay: echo B
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = _filter_skip(lf.plan(Step.STAGE))
+        assert actions == [
+            Action("A", Step.PULL),
+            Action("B", Step.PULL),
+            Action("A", Step.OVERLAY),
+            Action("B", Step.OVERLAY),
+            Action("A", Step.BUILD),
+            Action("B", Step.BUILD),
+            Action("A", Step.STAGE),
+            Action("B", Step.STAGE),
+        ]
+
+    def test_overlay_spec_scenario_2_stage_a(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                override-overlay: echo A
+              B:
+                plugin: nil
+                override-overlay: echo B
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = _filter_skip(lf.plan(Step.STAGE, part_names=["A"]))
+        assert actions == [
+            Action("A", Step.PULL),
+            Action("A", Step.OVERLAY),
+            Action("A", Step.BUILD),
+            Action("B", Step.PULL, reason="required to stage 'A'"),
+            Action("B", Step.OVERLAY, reason="required to stage 'A'"),
+            Action("A", Step.STAGE),
+        ]
+
+    def test_overlay_spec_scenario_3_stage_a(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                overlay-visibility: True
+              B:
+                plugin: nil
+                after: [A]
+                override-overlay: echo B
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = _filter_skip(lf.plan(Step.STAGE, part_names=["A"]))
+        assert actions == [
+            Action("A", Step.PULL),
+            Action("A", Step.OVERLAY),
+            Action("B", Step.PULL, reason="required to build 'A'"),
+            Action("B", Step.OVERLAY, reason="required to build 'A'"),
+            Action("A", Step.BUILD),
+            Action("A", Step.STAGE),
+        ]
+
+    def test_overlay_spec_scenario_3_stage_b(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                overlay-visibility: True
+              B:
+                plugin: nil
+                after: [A]
+                override-overlay: echo B
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = _filter_skip(lf.plan(Step.STAGE, part_names=["B"]))
+        assert actions == [
+            Action("B", Step.PULL),
+            Action("A", Step.PULL, reason="required to overlay 'B'"),
+            Action("A", Step.OVERLAY, reason="required to overlay 'B'"),
+            Action("B", Step.OVERLAY),
+            Action("A", Step.BUILD, reason="required to build 'B'"),
+            Action("A", Step.STAGE, reason="required to build 'B'"),
+            Action("B", Step.BUILD),
+            Action("B", Step.STAGE),
+        ]
+
+    def test_overlay_spec_scenario_4_stage_a(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                overlay-visibility: True
+              B:
+                plugin: nil
+                override-overlay: echo B
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = _filter_skip(lf.plan(Step.STAGE, part_names=["A"]))
+        assert actions == [
+            Action("A", Step.PULL),
+            Action("A", Step.OVERLAY),
+            Action("B", Step.PULL, reason="required to build 'A'"),
+            Action("B", Step.OVERLAY, reason="required to build 'A'"),
+            Action("A", Step.BUILD),
+            Action("A", Step.STAGE),
+        ]
+
+    def test_overlay_spec_scenario_4_stage_b(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                overlay-visibility: True
+              B:
+                plugin: nil
+                override-overlay: echo B
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = _filter_skip(lf.plan(Step.STAGE, part_names=["B"]))
+        assert actions == [
+            Action("B", Step.PULL),
+            Action("A", Step.PULL, reason="required to overlay 'B'"),
+            Action("A", Step.OVERLAY, reason="required to overlay 'B'"),
+            Action("B", Step.OVERLAY),
+            Action("B", Step.BUILD),
+            Action("B", Step.STAGE),
+        ]
+
+    def test_overlay_spec_scenario_5_stage_a(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                overlay-visibility: True
+                override-overlay: echo A
+              B:
+                plugin: nil
+                overlay-visibility: True
+                override-overlay: echo B
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = _filter_skip(lf.plan(Step.STAGE, part_names=["A"]))
+        assert actions == [
+            Action("A", Step.PULL),
+            Action("A", Step.OVERLAY),
+            Action("B", Step.PULL, reason="required to build 'A'"),
+            Action("B", Step.OVERLAY, reason="required to build 'A'"),
+            Action("A", Step.BUILD),
+            Action("A", Step.STAGE),
+        ]
+
+    def test_overlay_spec_scenario_5_stage_b(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                overlay-visibility: True
+                override-overlay: echo A
+              B:
+                plugin: nil
+                overlay-visibility: True
+                override-overlay: echo B
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = _filter_skip(lf.plan(Step.STAGE, part_names=["B"]))
+        assert actions == [
+            Action("B", Step.PULL),
+            Action("A", Step.PULL, reason="required to overlay 'B'"),
+            Action("A", Step.OVERLAY, reason="required to overlay 'B'"),
+            Action("B", Step.OVERLAY),
+            Action("B", Step.BUILD),
+            Action("B", Step.STAGE),
+        ]
+
+
+def _filter_skip(actions: List[Action]) -> List[Action]:
+    return [a for a in actions if a.action_type != ActionType.SKIP]
