@@ -24,7 +24,7 @@ from craft_parts.actions import Action, ActionType
 from craft_parts.infos import ProjectInfo
 from craft_parts.overlay_manager import OverlayManager
 from craft_parts.parts import Part, part_list_by_name, sort_parts
-from craft_parts.state_manager import StateManager, states
+from craft_parts.state_manager import StateManager, reports, states
 from craft_parts.steps import Step
 
 logger = logging.getLogger(__name__)
@@ -129,22 +129,22 @@ class Sequencer:
             self._rerun_step(part, current_step, reason=reason)
             return
 
-        # 2. If the step depends on overlay, check if it should run again.
-
-        if self._check_if_dirty_on_overlay(part, current_step):
-            return
-
-        # 3. If the step is dirty, run it again. A step is considered dirty if
+        # 2. If the step is dirty, run it again. A step is considered dirty if
         #    properties used by the step have changed, project options have changed,
         #    or dependencies have been re-staged.
 
         dirty_report = self._sm.check_if_dirty(part, current_step)
+
+        # 2.5 If the step depends on overlay, check if it should run again.
+        if self._check_if_dirty_on_overlay(part, current_step, dirty_report):
+            return
+
         if dirty_report:
             logger.debug("%s:%s is dirty", part.name, current_step)
             self._rerun_step(part, current_step, reason=dirty_report.reason())
             return
 
-        # 4. If the step is outdated, run it again (without cleaning if possible).
+        # 3. If the step is outdated, run it again (without cleaning if possible).
         #    A step is considered outdated if an earlier step in the lifecycle
         #    has been re-executed.
 
@@ -160,7 +160,7 @@ class Sequencer:
             self._sm.mark_step_updated(part, current_step)
             return
 
-        # 5. Otherwise just skip it
+        # 4. Otherwise just skip it
         self._add_action(
             part, current_step, action_type=ActionType.SKIP, reason="already ran"
         )
@@ -339,16 +339,22 @@ class Sequencer:
         # execution should never reach this line
         raise RuntimeError(f"part {top_part!r} not in parts list")
 
-    def _check_if_dirty_on_overlay(self, part: Part, step: Step) -> bool:
+    def _check_if_dirty_on_overlay(
+        self, part: Part, step: Step, dirty_report: Optional[reports.DirtyReport]
+    ) -> bool:
         if step == Step.OVERLAY:
             # Layers depend on the integrity of its validation hash
             current_layer_hash = self._om.current_layer_hash(part)
             state_layer_hash = self._om.get_layer_hash(part)
             if current_layer_hash != state_layer_hash:
                 logger.debug("%s:%s changed layer hash", part.name, step)
-                self._reapply_layer(
-                    part, current_layer_hash, reason="previous layer changed"
-                )
+
+                if dirty_report:
+                    reason = dirty_report.reason()
+                else:
+                    reason = "previous layer changed"
+
+                self._reapply_layer(part, current_layer_hash, reason=reason)
                 return True
 
         elif step == Step.BUILD:
