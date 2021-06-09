@@ -268,6 +268,7 @@ class TestCleaning:
 
         assert sorted(state_dir.rglob("*")) == [
             state_dir / "build",
+            state_dir / "layer_hash",
             state_dir / "overlay",
             state_dir / "prime",
             state_dir / "pull",
@@ -307,6 +308,7 @@ class TestCleaning:
         assert Path("prime/bar.txt").is_file()
         assert sorted(bar_state_dir.rglob("*")) == [
             bar_state_dir / "build",
+            bar_state_dir / "layer_hash",
             bar_state_dir / "overlay",
             bar_state_dir / "prime",
             bar_state_dir / "pull",
@@ -347,6 +349,8 @@ class TestCleaning:
         if step_is_build_or_later:
             all_states.append(foo_state_dir / "overlay")
             all_states.append(bar_state_dir / "overlay")
+            all_states.append(foo_state_dir / "layer_hash")
+            all_states.append(bar_state_dir / "layer_hash")
         if step_is_stage_or_later:
             all_states.append(foo_state_dir / "build")
             all_states.append(bar_state_dir / "build")

@@ -17,4 +17,6 @@
 """Overlay filesystem management."""
 
 from .overlay_manager import OverlayManager  # noqa: F401
-from .overlay_manager import compute_layer_digest  # noqa: F401
+from .overlay_manager import compute_layer_hash  # noqa: F401
+from .overlay_manager import load_layer_hash  # noqa: F401
+from .overlay_manager import save_layer_hash  # noqa: F401

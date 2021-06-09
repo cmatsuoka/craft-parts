@@ -400,10 +400,19 @@ class StateManager:
         """Mark the given part and step as updated."""
         self._state_db.rewrap(part_name=part.name, step=step, step_updated=True)
 
-    def get_layer_hash(self, part: Part) -> bytes:
-        """Get the layer validation hash for the given part."""
-        stw = self._state_db.get(part_name=part.name, step=Step.OVERLAY)
-        return bytes.fromhex(stw.state.layer_hash) if stw else b""
+    def get_overlay_hash(self, part: Part, step: Step) -> bytes:
+        """Get the overlay hash from the step state."""
+        if step not in [Step.BUILD, Step.STAGE]:
+            raise ValueError("only BUILD and STAGE states have overlay hash")
+
+        stw = self._state_db.get(part_name=part.name, step=step)
+        if not stw:
+            # step didn't run yet
+            return b""
+
+        state = stw.state
+
+        return state.overlay_hash
 
 
 def _sort_steps_by_state_timestamp(

@@ -411,15 +411,15 @@ class TestOverlayInvalidationFlow:
             Action("p3", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
             Action("p1", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
             Action("p2", Step.OVERLAY),
-            Action("p3", Step.OVERLAY, action_type=ActionType.RUN, reason="previous layer changed"),
+            Action("p3", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
             Action("p1", Step.BUILD, action_type=ActionType.RERUN, reason="overlay changed"),
             Action("p2", Step.BUILD),
             Action("p3", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
             Action("p1", Step.STAGE),
             Action("p2", Step.STAGE),
-            Action("p3", Step.STAGE, action_type=ActionType.UPDATE, reason="'OVERLAY' step changed"),
+            Action("p3", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
             Action("p1", Step.PRIME),
             Action("p2", Step.PRIME),
-            Action("p3", Step.PRIME, action_type=ActionType.UPDATE, reason="'STAGE' step changed"),
+            Action("p3", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
             # fmt: on
         ]
