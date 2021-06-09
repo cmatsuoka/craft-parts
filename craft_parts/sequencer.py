@@ -79,34 +79,9 @@ class Sequencer:
         if not selected_parts:
             return
 
-        last_part = self._part_list[-1]
-
         for current_step in target_step.previous_steps() + [target_step]:
             for part in selected_parts:
                 logger.debug("process %s:%s", part.name, current_step)
-
-                if current_step == Step.OVERLAY:
-                    layer_hash = self._ensure_overlay_consistency(
-                        part,
-                        reason=f"required to overlay {part.name!r}",
-                        skip_last=True,
-                    )
-                    self._om.set_layer_hash(part, layer_hash)
-
-                else:
-                    # The overlay step for all parts should run before we build a part
-                    # with overlay visibility or before we stage a part that declares
-                    # overlay parameters.
-                    if (current_step == Step.BUILD and part.sees_overlay) or (
-                        current_step == Step.STAGE and part.has_overlay
-                    ):
-                        overlay_hash = self._om.get_overlay_hash()
-                        if not overlay_hash:
-                            verb = _step_verb[current_step]
-                            self._ensure_overlay_consistency(
-                                last_part,
-                                reason=f"required to {verb} {part.name!r}",
-                            )
 
                 self._add_step_actions(
                     current_step=current_step,
@@ -201,6 +176,29 @@ class Sequencer:
         rerun: bool = False,
     ) -> None:
         self._process_dependencies(part, step)
+
+        if step == Step.OVERLAY:
+            # Make sure all previous layers are in place before we add a new
+            # layer to the overlay stack,
+            layer_hash = self._ensure_overlay_consistency(
+                part,
+                reason=f"required to overlay {part.name!r}",
+                skip_last=True,
+            )
+            self._om.set_layer_hash(part, layer_hash)
+
+        elif (step == Step.BUILD and part.sees_overlay) or (
+            step == Step.STAGE and part.has_overlay
+        ):
+            # The overlay step for all parts should run before we build a part
+            # with overlay visibility or before we stage a part that declares
+            # overlay parameters.
+            last_part = self._part_list[-1]
+            verb = _step_verb[step]
+            self._ensure_overlay_consistency(
+                last_part,
+                reason=f"required to {verb} {part.name!r}",
+            )
 
         if rerun:
             self._add_action(part, step, action_type=ActionType.RERUN, reason=reason)
