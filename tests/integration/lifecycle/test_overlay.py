@@ -423,3 +423,78 @@ class TestOverlayInvalidationFlow:
             Action("p3", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
             # fmt: on
         ]
+
+    def test_overlay_clean(self):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              p1:
+                plugin: nil
+              p2:
+                plugin: nil
+                override-overlay: echo overlay
+              p3:
+                plugin: nil
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = lf.plan(Step.PRIME)
+        assert actions == [
+            Action("p1", Step.PULL),
+            Action("p2", Step.PULL),
+            Action("p3", Step.PULL),
+            Action("p1", Step.OVERLAY),
+            Action("p2", Step.OVERLAY),
+            Action("p3", Step.OVERLAY),
+            Action("p1", Step.BUILD),
+            Action("p2", Step.BUILD),
+            Action("p3", Step.BUILD),
+            Action("p1", Step.STAGE),
+            Action("p2", Step.STAGE),
+            Action("p3", Step.STAGE),
+            Action("p1", Step.PRIME),
+            Action("p2", Step.PRIME),
+            Action("p3", Step.PRIME),
+        ]
+
+        with lf.action_executor() as ctx:
+            ctx.execute(actions)
+
+        # invalidate p2 overlay
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              p1:
+                plugin: nil
+              p2:
+                plugin: nil
+                override-overlay: echo changed
+              p3:
+                plugin: nil
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+
+        actions = lf.plan(Step.PRIME)
+        assert actions == [
+            # fmt: off
+            Action("p1", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p2", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p3", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p1", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p2", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="'override-overlay' property changed"),
+            Action("p3", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
+            Action("p1", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p2", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p3", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p1", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p2", Step.STAGE, action_type=ActionType.RERUN, reason="overlay changed"),
+            Action("p3", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p1", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
+            Action("p2", Step.PRIME),
+            Action("p3", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
+            # fmt: on
+        ]
