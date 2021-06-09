@@ -18,6 +18,7 @@ from pathlib import Path
 
 import pytest
 
+from craft_parts import overlay_manager
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import ProjectInfo
 from craft_parts.parts import Part, PartSpec
@@ -190,6 +191,9 @@ def test_sequencer_ensure_overlay_consistency(mocker):
 
     mock_add_all_actions = mocker.patch.object(seq, "_add_all_actions")
 
+    value = seq._ensure_overlay_consistency(p1, reason="because I say so")
+    print("===", value.hex())
+
     value = seq._ensure_overlay_consistency(p2, reason="because I say so")
     mock_add_all_actions.assert_has_calls(
         [
@@ -214,12 +218,10 @@ def test_sequencer_ensure_overlay_consistency_no_run(mocker):
     p1 = Part("p1", {})
     p2 = Part("p2", {})
 
-    state = states.OverlayState(
-        # expected hash for this layer
-        layer_hash="df58248c414f342c81e056b40bee12d17a08bf61"
-    )
     Path("parts/p1/state").mkdir(parents=True)
-    state.write(Path("parts/p1/state/overlay"))
+    overlay_manager.save_layer_hash(
+        p1, hash_bytes=bytes.fromhex("df58248c414f342c81e056b40bee12d17a08bf61")
+    )
 
     seq = Sequencer(part_list=[p1, p2], project_info=info)
 
@@ -236,12 +238,10 @@ def test_sequencer_ensure_overlay_consistency_dont_skip_last(mocker):
     p1 = Part("p1", {})
     p2 = Part("p2", {})
 
-    state = states.OverlayState(
-        # expected hash for this layer
-        layer_hash="df58248c414f342c81e056b40bee12d17a08bf61"
-    )
     Path("parts/p1/state").mkdir(parents=True)
-    state.write(Path("parts/p1/state/overlay"))
+    overlay_manager.save_layer_hash(
+        p1, hash_bytes=bytes.fromhex("df58248c414f342c81e056b40bee12d17a08bf61")
+    )
 
     seq = Sequencer(part_list=[p1, p2], project_info=info)
 

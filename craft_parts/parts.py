@@ -158,7 +158,6 @@ class Part:
         self._dirs = project_dirs
         self._part_dir = project_dirs.parts_dir / name
         self._part_dir = project_dirs.parts_dir / name
-        self.layer_hash = b""
 
         try:
             self.spec = PartSpec.unmarshal(data)
@@ -223,6 +222,11 @@ class Part:
     def part_run_dir(self) -> Path:
         """Return the subdirectory containing the part plugin scripts."""
         return self._part_dir / "run"
+
+    @property
+    def part_layer_dir(self) -> Path:
+        """Return the subdirectory containing the part overlay files."""
+        return self._part_dir / "layer"
 
     @property
     def stage_dir(self) -> Path:
@@ -307,7 +311,7 @@ def sort_parts(part_list: List[Part]) -> List[Part]:
 
     :raises PartDependencyCycle: if there are circular dependencies.
     """
-    sorted_parts = []  # type: List[Part]
+    sorted_parts: List[Part] = list()
 
     # We want to process parts in a consistent order between runs. The
     # simplest way to do this is to sort them by name.
