@@ -24,7 +24,7 @@ from glob import iglob
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set
 
-from craft_parts import callbacks, errors, overlay_manager, packages, plugins, sources
+from craft_parts import callbacks, errors, overlays, packages, plugins, sources
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, StepInfo
 from craft_parts.packages import errors as packages_errors
@@ -151,7 +151,7 @@ class PartHandler:
         )
 
         layer_hash = self._compute_layer_hash()
-        overlay_manager.save_layer_hash(self._part, hash_bytes=layer_hash)
+        overlays.save_layer_hash(self._part, hash_bytes=layer_hash)
 
         return states.OverlayState(
             part_properties=self._part_properties,
@@ -163,15 +163,13 @@ class PartHandler:
     def _compute_layer_hash(self):
         index = self._part_list.index(self._part)
         if index > 0:
-            previous_layer_hash = overlay_manager.load_layer_hash(
-                self._part_list[index - 1]
-            )
+            previous_layer_hash = overlays.load_layer_hash(self._part_list[index - 1])
             if not previous_layer_hash:
                 raise RuntimeError("overlay inconsistency")
         else:
             previous_layer_hash = self._base_layer_hash
 
-        return overlay_manager.compute_layer_hash(self._part, previous_layer_hash)
+        return overlays.compute_layer_hash(self._part, previous_layer_hash)
 
     def _run_build(self, step_info: StepInfo, *, update=False) -> StepState:
         self._make_dirs()
