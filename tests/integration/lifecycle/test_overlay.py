@@ -486,7 +486,7 @@ class TestOverlayInvalidationFlow:
             Action("p2", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
             Action("p3", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
             Action("p1", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="'override-overlay' property changed"),
+            Action("p2", Step.OVERLAY, action_type=ActionType.RERUN, reason="'override-overlay' property changed"),
             Action("p3", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
             Action("p1", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
             Action("p2", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),

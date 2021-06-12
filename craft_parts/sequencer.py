@@ -24,7 +24,7 @@ from craft_parts.actions import Action, ActionType
 from craft_parts.infos import ProjectInfo
 from craft_parts.overlays import compute_layer_hash, load_layer_hash
 from craft_parts.parts import Part, part_list_by_name, sort_parts
-from craft_parts.state_manager import StateManager, reports, states
+from craft_parts.state_manager import StateManager, states
 from craft_parts.steps import Step
 
 logger = logging.getLogger(__name__)
@@ -134,14 +134,13 @@ class Sequencer:
         #    or dependencies have been re-staged.
 
         dirty_report = self._sm.check_if_dirty(part, current_step)
-
-        # 2.5 If the step depends on overlay, check if it should run again.
-        if self._check_if_dirty_on_overlay(part, current_step, dirty_report):
-            return
-
         if dirty_report:
             logger.debug("%s:%s is dirty", part.name, current_step)
             self._rerun_step(part, current_step, reason=dirty_report.reason())
+            return
+
+        # 2.5 If the step depends on overlay, check if it must be reapplied.
+        if self._check_if_dirty_on_overlay(part, current_step):
             return
 
         # 3. If the step is outdated, run it again (without cleaning if possible).
@@ -264,8 +263,10 @@ class Sequencer:
     ) -> None:
         logger.debug("rerun step %s:%s", part.name, step)
 
-        # clean the step and later steps for this part, then run it again
-        self._sm.clean_part(part, step)
+        if step != Step.OVERLAY:
+            # clean the step and later steps for this part
+            self._sm.clean_part(part, step)
+
         self._run_step(part, step, reason=reason, rerun=True)
 
     def _update_step(self, part: Part, step: Step, *, reason: Optional[str] = None):
@@ -339,22 +340,16 @@ class Sequencer:
         # execution should never reach this line
         raise RuntimeError(f"part {top_part!r} not in parts list")
 
-    def _check_if_dirty_on_overlay(
-        self, part: Part, step: Step, dirty_report: Optional[reports.DirtyReport]
-    ) -> bool:
+    def _check_if_dirty_on_overlay(self, part: Part, step: Step) -> bool:
         if step == Step.OVERLAY:
             # Layers depend on the integrity of its validation hash
             current_layer_hash = self._layer_state.current_layer_hash(part)
             state_layer_hash = self._layer_state.get_layer_hash(part)
             if current_layer_hash != state_layer_hash:
                 logger.debug("%s:%s changed layer hash", part.name, step)
-
-                if dirty_report:
-                    reason = dirty_report.reason()
-                else:
-                    reason = "previous layer changed"
-
-                self._reapply_layer(part, current_layer_hash, reason=reason)
+                self._reapply_layer(
+                    part, current_layer_hash, reason="previous layer changed"
+                )
                 return True
 
         elif step == Step.BUILD:
