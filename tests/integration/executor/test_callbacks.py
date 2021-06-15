@@ -68,13 +68,22 @@ _parts_yaml = textwrap.dedent(
 )
 
 
+@pytest.fixture
+def fake_call(mocker):
+    return mocker.patch("subprocess.check_call")
+
+
 @pytest.mark.parametrize("step", list(Step))
-def test_step_callback(tmpdir, capfd, step):
+def test_step_callback(tmpdir, capfd, fake_call, step):
     callbacks.register_pre_step(_step_callback, step_list=[step])
 
     parts = yaml.safe_load(_parts_yaml)
     lf = craft_parts.LifecycleManager(
-        parts, application_name="test_step_callback", work_dir=tmpdir
+        parts,
+        application_name="test_step_callback",
+        work_dir=tmpdir,
+        base_layer_dir=tmpdir,
+        base_layer_hash=b"hash",
     )
 
     with lf.action_executor() as ctx:
@@ -91,12 +100,16 @@ def test_step_callback(tmpdir, capfd, step):
     )
 
 
-def test_prologue_callback(tmpdir, capfd):
+def test_prologue_callback(tmpdir, capfd, fake_call):
     callbacks.register_prologue(_exec_callback)
 
     parts = yaml.safe_load(_parts_yaml)
     lf = craft_parts.LifecycleManager(
-        parts, application_name="test_prologue_callback", work_dir=tmpdir
+        parts,
+        application_name="test_prologue_callback",
+        work_dir=tmpdir,
+        base_layer_dir=tmpdir,
+        base_layer_hash=b"hash",
     )
 
     with lf.action_executor() as ctx:
@@ -123,12 +136,17 @@ def _my_step_callback(info: StepInfo) -> bool:
 
 @pytest.mark.parametrize("step", list(Step))
 @pytest.mark.parametrize("action_type", list(set(ActionType) - {ActionType.UPDATE}))
-def test_callback_pre(tmpdir, capfd, step, action_type):
+def test_callback_pre(tmpdir, capfd, fake_call, step, action_type):
     callbacks.register_pre_step(_my_step_callback, step_list=[step])
 
     parts = yaml.safe_load(_parts_yaml)
     lf = craft_parts.LifecycleManager(
-        parts, application_name="test_callback", work_dir=tmpdir, message="callback"
+        parts,
+        application_name="test_callback",
+        work_dir=tmpdir,
+        base_layer_dir=tmpdir,
+        base_layer_hash=b"hash",
+        message="callback",
     )
 
     with lf.action_executor() as ctx:
@@ -144,12 +162,17 @@ def test_callback_pre(tmpdir, capfd, step, action_type):
 
 @pytest.mark.parametrize("step", list(Step))
 @pytest.mark.parametrize("action_type", list(set(ActionType) - {ActionType.UPDATE}))
-def test_callback_post(tmpdir, capfd, step, action_type):
+def test_callback_post(tmpdir, capfd, fake_call, step, action_type):
     callbacks.register_post_step(_my_step_callback, step_list=[step])
 
     parts = yaml.safe_load(_parts_yaml)
     lf = craft_parts.LifecycleManager(
-        parts, application_name="test_callback", work_dir=tmpdir, message="callback"
+        parts,
+        application_name="test_callback",
+        work_dir=tmpdir,
+        base_layer_dir=tmpdir,
+        base_layer_hash=b"hash",
+        message="callback",
     )
 
     with lf.action_executor() as ctx:
@@ -179,12 +202,17 @@ _update_yaml = textwrap.dedent(
 
 
 @pytest.mark.parametrize("step", [Step.PULL, Step.BUILD])
-def test_update_callback_pre(tmpdir, capfd, step):
+def test_update_callback_pre(tmpdir, capfd, fake_call, step):
     callbacks.register_pre_step(_my_step_callback, step_list=[step])
 
     parts = yaml.safe_load(_update_yaml)
     lf = craft_parts.LifecycleManager(
-        parts, application_name="test_callback", work_dir=tmpdir, message="callback"
+        parts,
+        application_name="test_callback",
+        work_dir=tmpdir,
+        base_layer_dir=tmpdir,
+        base_layer_hash=b"hash",
+        message="callback",
     )
 
     with lf.action_executor() as ctx:
@@ -196,12 +224,17 @@ def test_update_callback_pre(tmpdir, capfd, step):
 
 
 @pytest.mark.parametrize("step", [Step.PULL, Step.BUILD])
-def test_update_callback_post(tmpdir, capfd, step):
+def test_update_callback_post(tmpdir, capfd, fake_call, step):
     callbacks.register_post_step(_my_step_callback, step_list=[step])
 
     parts = yaml.safe_load(_update_yaml)
     lf = craft_parts.LifecycleManager(
-        parts, application_name="test_callback", work_dir=tmpdir, message="callback"
+        parts,
+        application_name="test_callback",
+        work_dir=tmpdir,
+        base_layer_dir=tmpdir,
+        base_layer_hash=b"hash",
+        message="callback",
     )
 
     with lf.action_executor() as ctx:
@@ -213,12 +246,17 @@ def test_update_callback_post(tmpdir, capfd, step):
 
 
 @pytest.mark.parametrize("step", [Step.STAGE, Step.PRIME])
-def test_invalid_update_callback_pre(tmpdir, step):
+def test_invalid_update_callback_pre(tmpdir, fake_call, step):
     callbacks.register_pre_step(_my_step_callback, step_list=[step])
 
     parts = yaml.safe_load(_update_yaml)
     lf = craft_parts.LifecycleManager(
-        parts, application_name="test_callback", work_dir=tmpdir, message="callback"
+        parts,
+        application_name="test_callback",
+        work_dir=tmpdir,
+        base_layer_dir=tmpdir,
+        base_layer_hash=b"hash",
+        message="callback",
     )
 
     with lf.action_executor() as ctx, pytest.raises(errors.InvalidAction) as raised:
@@ -229,12 +267,17 @@ def test_invalid_update_callback_pre(tmpdir, step):
 
 
 @pytest.mark.parametrize("step", [Step.STAGE, Step.PRIME])
-def test_invalid_update_callback_post(tmpdir, step):
+def test_invalid_update_callback_post(tmpdir, fake_call, step):
     callbacks.register_post_step(_my_step_callback, step_list=[step])
 
     parts = yaml.safe_load(_update_yaml)
     lf = craft_parts.LifecycleManager(
-        parts, application_name="test_callback", work_dir=tmpdir, message="callback"
+        parts,
+        application_name="test_callback",
+        work_dir=tmpdir,
+        base_layer_dir=tmpdir,
+        base_layer_hash=b"hash",
+        message="callback",
     )
 
     with lf.action_executor() as ctx, pytest.raises(errors.InvalidAction) as raised:
@@ -270,12 +313,17 @@ _exec_yaml = textwrap.dedent(
 )
 
 
-def test_callback_prologue(tmpdir, capfd):
+def test_callback_prologue(tmpdir, capfd, fake_call):
     callbacks.register_prologue(_my_exec_callback)
 
     parts = yaml.safe_load(_exec_yaml)
     lf = craft_parts.LifecycleManager(
-        parts, application_name="test_callback", work_dir=tmpdir, message="prologue"
+        parts,
+        application_name="test_callback",
+        work_dir=tmpdir,
+        base_layer_dir=tmpdir,
+        base_layer_hash=b"hash",
+        message="prologue",
     )
 
     with lf.action_executor() as ctx:
@@ -286,12 +334,17 @@ def test_callback_prologue(tmpdir, capfd):
     assert out == "bar: prologue\nfoo: prologue\nfoo Step.PULL\n"
 
 
-def test_callback_epilogue(tmpdir, capfd):
+def test_callback_epilogue(tmpdir, capfd, fake_call):
     callbacks.register_epilogue(_my_exec_callback)
 
     parts = yaml.safe_load(_exec_yaml)
     lf = craft_parts.LifecycleManager(
-        parts, application_name="test_callback", work_dir=tmpdir, message="epilogue"
+        parts,
+        application_name="test_callback",
+        work_dir=tmpdir,
+        base_layer_dir=tmpdir,
+        base_layer_hash=b"hash",
+        message="epilogue",
     )
 
     with lf.action_executor() as ctx:

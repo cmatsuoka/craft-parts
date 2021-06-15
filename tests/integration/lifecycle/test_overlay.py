@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import textwrap
+from pathlib import Path
 from typing import List
 
 import pytest
@@ -22,6 +23,11 @@ import yaml
 
 import craft_parts
 from craft_parts import Action, ActionType, Step
+
+
+@pytest.fixture
+def fake_call(mocker):
+    return mocker.patch("subprocess.check_call")
 
 
 class TestOverlayLayerOrder:
@@ -40,7 +46,12 @@ class TestOverlayLayerOrder:
         )
         parts = yaml.safe_load(parts_yaml)
 
-        return craft_parts.LifecycleManager(parts, application_name="test_layers")
+        return craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
     def test_layer_order_bottom_layer(self, lifecycle):
         # prime p1
@@ -68,7 +79,7 @@ class TestOverlayLayerOrder:
             Action("p3", Step.PRIME),
         ]
 
-    def test_layer_parameter_change(self, lifecycle):
+    def test_layer_parameter_change(self, lifecycle, fake_call):
         actions = lifecycle.plan(Step.OVERLAY, ["p3"])
         assert actions == [
             Action("p3", Step.PULL),
@@ -105,7 +116,12 @@ class TestOverlayLayerOrder:
         )
         parts = yaml.safe_load(parts_yaml)
 
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
         actions = lf.plan(Step.OVERLAY, ["p3"])
         assert actions == [
             # fmt: off
@@ -209,7 +225,7 @@ class TestOverlayBuildDependency:
 
 @pytest.mark.usefixtures("new_dir")
 class TestOverlayStageDependency:
-    def test_part_overlay_stage_dependency_top(self):
+    def test_part_overlay_stage_dependency_top(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -223,7 +239,12 @@ class TestOverlayStageDependency:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = lf.plan(Step.STAGE, ["p3"])
         assert actions == [
@@ -239,7 +260,7 @@ class TestOverlayStageDependency:
             # fmt: on
         ]
 
-    def test_part_overlay_stage_dependency_middle(self):
+    def test_part_overlay_stage_dependency_middle(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -253,7 +274,12 @@ class TestOverlayStageDependency:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = lf.plan(Step.STAGE, ["p2"])
         assert actions == [
@@ -269,7 +295,7 @@ class TestOverlayStageDependency:
             # fmt: on
         ]
 
-    def test_part_overlay_stage_dependency_bottom(self):
+    def test_part_overlay_stage_dependency_bottom(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -283,7 +309,12 @@ class TestOverlayStageDependency:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = lf.plan(Step.STAGE, ["p1"])
         assert actions == [
@@ -335,7 +366,12 @@ class TestOverlayInvalidationFlow:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = lf.plan(Step.PRIME)
         assert actions == [
@@ -348,7 +384,7 @@ class TestOverlayInvalidationFlow:
             # fmt: on
         ]
 
-    def test_pull_dirty_multipart(self):
+    def test_pull_dirty_multipart(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -363,7 +399,12 @@ class TestOverlayInvalidationFlow:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = lf.plan(Step.PRIME)
         assert actions == [
@@ -402,7 +443,12 @@ class TestOverlayInvalidationFlow:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = lf.plan(Step.PRIME)
         assert actions == [
@@ -425,7 +471,7 @@ class TestOverlayInvalidationFlow:
             # fmt: on
         ]
 
-    def test_overlay_clean(self):
+    def test_overlay_clean(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -439,7 +485,12 @@ class TestOverlayInvalidationFlow:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = lf.plan(Step.PRIME)
         assert actions == [
@@ -477,7 +528,12 @@ class TestOverlayInvalidationFlow:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = lf.plan(Step.PRIME)
         assert actions == [
@@ -501,6 +557,7 @@ class TestOverlayInvalidationFlow:
         ]
 
 
+@pytest.mark.usefixtures("new_dir")
 class TestOverlaySpecScenarios:
     def test_overlay_spec_scenario_1(self):
         parts_yaml = textwrap.dedent(
@@ -528,7 +585,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_2_stage_all(self):
+    def test_overlay_spec_scenario_2_stage_all(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -541,7 +598,12 @@ class TestOverlaySpecScenarios:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = _filter_skip(lf.plan(Step.STAGE))
         assert actions == [
@@ -555,7 +617,7 @@ class TestOverlaySpecScenarios:
             Action("B", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_2_stage_a(self):
+    def test_overlay_spec_scenario_2_stage_a(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -568,7 +630,12 @@ class TestOverlaySpecScenarios:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = _filter_skip(lf.plan(Step.STAGE, part_names=["A"]))
         assert actions == [
@@ -580,7 +647,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_3_stage_a(self):
+    def test_overlay_spec_scenario_3_stage_a(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -594,7 +661,12 @@ class TestOverlaySpecScenarios:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = _filter_skip(lf.plan(Step.STAGE, part_names=["A"]))
         assert actions == [
@@ -606,7 +678,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_3_stage_b(self):
+    def test_overlay_spec_scenario_3_stage_b(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -620,7 +692,12 @@ class TestOverlaySpecScenarios:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = _filter_skip(lf.plan(Step.STAGE, part_names=["B"]))
         assert actions == [
@@ -634,7 +711,7 @@ class TestOverlaySpecScenarios:
             Action("B", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_4_stage_a(self):
+    def test_overlay_spec_scenario_4_stage_a(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -647,7 +724,12 @@ class TestOverlaySpecScenarios:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = _filter_skip(lf.plan(Step.STAGE, part_names=["A"]))
         assert actions == [
@@ -659,7 +741,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_4_stage_b(self):
+    def test_overlay_spec_scenario_4_stage_b(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -672,7 +754,12 @@ class TestOverlaySpecScenarios:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = _filter_skip(lf.plan(Step.STAGE, part_names=["B"]))
         assert actions == [
@@ -684,7 +771,7 @@ class TestOverlaySpecScenarios:
             Action("B", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_5_stage_a(self):
+    def test_overlay_spec_scenario_5_stage_a(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -699,7 +786,12 @@ class TestOverlaySpecScenarios:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = _filter_skip(lf.plan(Step.STAGE, part_names=["A"]))
         assert actions == [
@@ -711,7 +803,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_5_stage_b(self):
+    def test_overlay_spec_scenario_5_stage_b(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -726,7 +818,12 @@ class TestOverlaySpecScenarios:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
 
         actions = _filter_skip(lf.plan(Step.STAGE, part_names=["B"]))
         assert actions == [

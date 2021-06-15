@@ -71,7 +71,12 @@ def test_ctl_client_steps(new_dir, capfd, mocker):
     Path("foo").mkdir()
     Path("foo/foo.txt").touch()
 
-    lf = craft_parts.LifecycleManager(parts, application_name="test_ctl")
+    lf = craft_parts.LifecycleManager(
+        parts,
+        application_name="test_ctl",
+        base_layer_dir=Path("/base"),
+        base_layer_hash=b"hash",
+    )
     actions = lf.plan(Step.PRIME)
     assert actions == [
         Action("foo", Step.PULL),
@@ -133,7 +138,12 @@ def test_ctl_client_step_argments(new_dir, step):
     )
     parts = yaml.safe_load(parts_yaml)
 
-    lf = craft_parts.LifecycleManager(parts, application_name="test_ctl")
+    lf = craft_parts.LifecycleManager(
+        parts,
+        application_name="test_ctl",
+        base_layer_dir=Path("/base"),
+        base_layer_hash=b"hash",
+    )
     with pytest.raises(errors.InvalidControlAPICall) as raised:
         with lf.action_executor() as ctx:
             ctx.execute(Action("foo", step))

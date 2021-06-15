@@ -89,6 +89,7 @@ class TestLifecycleManager:
         mock_seq.assert_called_once_with(
             part_list=lf._part_list,
             project_info=lf.project_info,
+            base_layer_hash=b"",
         )
 
 

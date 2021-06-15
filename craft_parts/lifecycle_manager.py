@@ -16,7 +16,8 @@
 
 """The parts lifecycle manager."""
 
-from typing import Any, Dict, List, Sequence
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence
 
 from pydantic import ValidationError
 
@@ -26,6 +27,8 @@ from craft_parts.dirs import ProjectDirs
 from craft_parts.infos import ProjectInfo
 from craft_parts.parts import Part
 from craft_parts.steps import Step
+
+# pylint: disable=too-many-locals
 
 
 class LifecycleManager:
@@ -63,6 +66,8 @@ class LifecycleManager:
         base: str = "",
         parallel_build_count: int = 1,
         extra_build_packages: List[str] = None,
+        base_layer_dir: Optional[Path] = None,
+        base_layer_hash: bytes = b"",
         **custom_args,  # custom passthrough args
     ):
         # TODO: validate or slugify application name
@@ -85,16 +90,29 @@ class LifecycleManager:
             part_list.append(_build_part(name, spec, project_dirs))
 
         self._part_list = part_list
+
+        self._has_overlay = any(p.has_overlay for p in part_list)
+        if self._has_overlay:
+            if not base_layer_dir:
+                raise ValueError("using overlays and base_layer_dir not specified")
+            if not base_layer_hash:
+                raise ValueError("using overlays and base_layer hash not specified")
+        else:
+            base_layer_dir = None
+
         self._application_name = application_name
         self._target_arch = project_info.target_arch
         self._sequencer = sequencer.Sequencer(
             part_list=self._part_list,
             project_info=project_info,
+            base_layer_hash=base_layer_hash,
         )
         self._executor = executor.Executor(
             part_list=self._part_list,
             project_info=project_info,
             extra_build_packages=extra_build_packages,
+            base_layer_dir=base_layer_dir,
+            base_layer_hash=base_layer_hash,
         )
         self._project_info = project_info
 
@@ -129,6 +147,9 @@ class LifecycleManager:
         packages.Repository.refresh_stage_packages_list(
             application_name=self._application_name, target_arch=self._target_arch
         )
+
+        if self._has_overlay:
+            self._executor.refresh_overlay_packages_list()
 
         if system:
             packages.Repository.refresh_build_packages_list()
