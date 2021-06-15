@@ -60,6 +60,7 @@ _parts_yaml = textwrap.dedent(
       foo:
         plugin: nil
         override-pull: echo "override Step.PULL"
+        override-overlay: echo "override Step.OVERLAY"
         override-build: echo "override Step.BUILD"
         override-stage: echo "override Step.STAGE"
         override-prime: echo "override Step.PRIME"
@@ -169,6 +170,7 @@ _update_yaml = textwrap.dedent(
         plugin: nil
         source: .
         override-pull: echo "override Step.PULL"
+        override-overlay: echo "override Step.OVERLAY"
         override-build: echo "override Step.BUILD"
         override-stage: echo "override Step.STAGE"
         override-prime: echo "override Step.PRIME"
@@ -253,12 +255,14 @@ _exec_yaml = textwrap.dedent(
       foo:
         plugin: nil
         override-pull: echo "foo Step.PULL"
+        override-overlay: echo "foo Step.OVERLAY"
         override-build: echo "foo Step.BUILD"
         override-stage: echo "foo Step.STAGE"
         override-prime: echo "foo Step.PRIME"
       bar:
         plugin: nil
         override-pull: echo "bar Step.PULL"
+        override-overlay: echo "bar Step.OVERLAY"
         override-build: echo "bar Step.BUILD"
         override-stage: echo "bar Step.STAGE"
         override-prime: echo "bar Step.PRIME"
@@ -279,7 +283,7 @@ def test_callback_prologue(tmpdir, capfd):
 
     out, err = capfd.readouterr()
     assert not err
-    assert out == "foo: prologue\nbar: prologue\nfoo Step.PULL\n"
+    assert out == "bar: prologue\nfoo: prologue\nfoo Step.PULL\n"
 
 
 def test_callback_epilogue(tmpdir, capfd):
@@ -295,4 +299,4 @@ def test_callback_epilogue(tmpdir, capfd):
 
     out, err = capfd.readouterr()
     assert not err
-    assert out == "foo Step.PULL\nfoo: epilogue\nbar: epilogue\n"
+    assert out == "foo Step.PULL\nbar: epilogue\nfoo: epilogue\n"
