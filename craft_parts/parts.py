@@ -241,6 +241,21 @@ class Part:
         return self._part_dir / "layer"
 
     @property
+    def overlay_dir(self) -> Path:
+        """Return the overlay directory."""
+        return self._dirs.overlay_dir
+
+    @property
+    def overlay_packages_dir(self) -> Path:
+        """Return the overlay package cache directory."""
+        return self._dirs.overlay_packages_dir
+
+    @property
+    def overlay_work_dir(self) -> Path:
+        """Return the overlay work directory."""
+        return self._dirs.overlay_work_dir
+
+    @property
     def stage_dir(self) -> Path:
         """Return the staging area containing the installed files from all parts."""
         return self._dirs.stage_dir

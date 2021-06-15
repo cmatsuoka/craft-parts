@@ -452,6 +452,7 @@ class PartHandler:
             self._part.part_src_dir,
             self._part.part_build_dir,
             self._part.part_install_dir,
+            self._part.part_layer_dir,
             self._part.part_state_dir,
             self._part.part_run_dir,
             self._part.stage_dir,

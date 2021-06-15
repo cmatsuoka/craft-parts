@@ -19,11 +19,13 @@
 import contextlib
 import logging
 import shutil
-from typing import Dict, List, Union
+from pathlib import Path
+from typing import Dict, List, Optional, Union
 
 from craft_parts import callbacks, packages, parts
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, ProjectInfo
+from craft_parts.overlays import OverlayManager, PackageCacheMounter
 from craft_parts.parts import Part, sort_parts
 from craft_parts.steps import Step
 from craft_parts.utils import os_utils
@@ -58,6 +60,7 @@ class Executor:
         extra_build_packages: List[str] = None,
         extra_build_snaps: List[str] = None,
         ignore_patterns: List[str] = None,
+        base_layer_dir: Optional[Path] = None,
         base_layer_hash: bytes = b"",
     ):
         self._part_list = sort_parts(part_list)
@@ -67,6 +70,12 @@ class Executor:
         self._base_layer_hash = base_layer_hash
         self._handler: Dict[str, PartHandler] = {}
         self._ignore_patterns = ignore_patterns
+
+        self._overlay_manager = OverlayManager(
+            project_info=self._project_info,
+            part_list=self._part_list,
+            base_layer_dir=base_layer_dir,
+        )
 
     def prologue(self) -> None:
         """Prepare the execution environment.
@@ -127,6 +136,15 @@ class Executor:
                     shutil.rmtree(self._project_info.stage_dir)
                 if initial_step <= Step.PULL:
                     shutil.rmtree(self._project_info.parts_dir)
+
+    def refresh_overlay_packages_list(self) -> None:
+        """Update the list of packages available in the overlay environment."""
+        with self._mounted_package_cache() as ctx:
+            ctx.refresh_packages_list()
+
+    def _mounted_package_cache(self) -> PackageCacheMounter:
+        """Return a context manager for the mounted package cache."""
+        return PackageCacheMounter(self._overlay_manager)
 
     def _run_action(self, action: Action) -> None:
         """Execute the given action for a part using the provided step information.

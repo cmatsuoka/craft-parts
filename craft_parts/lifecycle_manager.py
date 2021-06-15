@@ -29,6 +29,8 @@ from craft_parts.infos import ProjectInfo
 from craft_parts.parts import Part
 from craft_parts.steps import Step
 
+# pylint: disable=too-many-locals
+
 
 class LifecycleManager:
     """Coordinate the planning and execution of the parts lifecycle.
@@ -76,6 +78,8 @@ class LifecycleManager:
         application_package_name: Optional[str] = None,
         ignore_local_sources: Optional[List[str]] = None,
         extra_build_packages: Optional[List[str]] = None,
+        base_layer_dir: Optional[Path] = None,
+        base_layer_hash: bytes = b"",
         **custom_args,  # custom passthrough args
     ):
         if not re.match("^[A-Za-z][0-9A-Za-z_]*$", application_name):
@@ -111,18 +115,31 @@ class LifecycleManager:
             part_list.append(_build_part(name, spec, project_dirs))
 
         self._part_list = part_list
+
+        self._has_overlay = any(p.has_overlay for p in part_list)
+        if self._has_overlay:
+            if not base_layer_dir:
+                raise ValueError("using overlays and base_layer_dir not specified")
+            if not base_layer_hash:
+                raise ValueError("using overlays and base_layer hash not specified")
+        else:
+            base_layer_dir = None
+
         self._application_name = application_name
         self._target_arch = project_info.target_arch
         self._sequencer = sequencer.Sequencer(
             part_list=self._part_list,
             project_info=project_info,
             ignore_outdated=ignore_local_sources,
+            base_layer_hash=base_layer_hash,
         )
         self._executor = executor.Executor(
             part_list=self._part_list,
             project_info=project_info,
             ignore_patterns=ignore_local_sources,
             extra_build_packages=extra_build_packages,
+            base_layer_dir=base_layer_dir,
+            base_layer_hash=base_layer_hash,
         )
         self._project_info = project_info
 
@@ -157,6 +174,9 @@ class LifecycleManager:
         packages.Repository.refresh_stage_packages_list(
             cache_dir=self._project_info.cache_dir, target_arch=self._target_arch
         )
+
+        if self._has_overlay:
+            self._executor.refresh_overlay_packages_list()
 
         if system:
             packages.Repository.refresh_build_packages_list()

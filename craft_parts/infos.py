@@ -183,6 +183,7 @@ class PartInfo:
         self._part_build_subdir = part.part_build_subdir
         self._part_install_dir = part.part_install_dir
         self._part_state_dir = part.part_state_dir
+        self._part_layer_dir = part.part_layer_dir
 
     def __getattr__(self, name):
         # Use composition and attribute cascading to avoid setting attributes
