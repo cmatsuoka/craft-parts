@@ -47,9 +47,8 @@ class Sequencer:
         self._part_list = sort_parts(part_list)
         self._project_info = project_info
         self._sm = StateManager(project_info=project_info, part_list=self._part_list)
-        self._layer_state = _LayerState(self._part_list, base_layer_hash)
+        self._layer_state = LayerStateManager(self._part_list, base_layer_hash)
         self._actions: List[Action] = []
-        self._overlay_hash = b""
 
     def plan(self, target_step: Step, part_names: Sequence[str] = None) -> List[Action]:
         """Determine the list of steps to execute for each part.
@@ -225,14 +224,14 @@ class Sequencer:
             state = states.BuildState(
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
-                overlay_hash=self._overlay_hash.hex(),
+                overlay_hash=self._layer_state.get_overlay_hash().hex(),
             )
 
         elif step == Step.STAGE:
             state = states.StageState(
                 part_properties=part_properties,
                 project_options=self._project_info.project_options,
-                overlay_hash=self._overlay_hash.hex(),
+                overlay_hash=self._layer_state.get_overlay_hash().hex(),
             )
 
         elif step == Step.PRIME:
@@ -363,7 +362,7 @@ class Sequencer:
         return False
 
 
-class _LayerState:
+class LayerStateManager:
     """The layer stack state manager.
 
     :param part_list: The list of parts in the project.
