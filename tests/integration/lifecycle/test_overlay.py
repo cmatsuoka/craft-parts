@@ -556,6 +556,81 @@ class TestOverlayInvalidationFlow:
             # fmt: on
         ]
 
+    def test_overlay_invalidation_facundos_scenario(self, fake_call):
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                overlay-visibility: True
+                override-overlay: echo "overlay A"
+              B:
+                plugin: nil
+                override-overlay: echo "overlay B"
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
+
+        actions = lf.plan(Step.PRIME)
+        assert actions == [
+            Action("A", Step.PULL),
+            Action("B", Step.PULL),
+            Action("A", Step.OVERLAY),
+            Action("B", Step.OVERLAY),
+            Action("A", Step.BUILD),
+            Action("B", Step.BUILD),
+            Action("A", Step.STAGE),
+            Action("B", Step.STAGE),
+            Action("A", Step.PRIME),
+            Action("B", Step.PRIME),
+        ]
+
+        with lf.action_executor() as ctx:
+            ctx.execute(actions)
+
+        # invalidate p2 overlay
+        parts_yaml = textwrap.dedent(
+            """
+            parts:
+              A:
+                plugin: nil
+                overlay-visibility: True
+                override-overlay: echo "overlay A changed"
+              B:
+                plugin: nil
+                override-overlay: echo "overlay B"
+            """
+        )
+        parts = yaml.safe_load(parts_yaml)
+        lf = craft_parts.LifecycleManager(
+            parts,
+            application_name="test_layers",
+            base_layer_dir=Path("/base"),
+            base_layer_hash=b"hash",
+        )
+
+        actions = lf.plan(Step.PRIME)
+        assert actions == [
+            # fmt: off
+            Action("A", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("A", Step.OVERLAY, action_type=ActionType.RERUN, reason="'override-overlay' property changed"),
+            Action("B", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
+            Action("A", Step.BUILD, action_type=ActionType.RERUN, reason="overlay changed"),
+            Action("B", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+            Action("A", Step.STAGE, action_type=ActionType.RUN),
+            Action("B", Step.STAGE, action_type=ActionType.RERUN, reason="overlay changed"),
+            Action("A", Step.PRIME),
+            Action("B", Step.PRIME),
+            # fmt: on
+        ]
+
 
 @pytest.mark.usefixtures("new_dir")
 class TestOverlaySpecScenarios:

@@ -405,7 +405,7 @@ class StateManager:
 
         state = stw.state
 
-        return state.overlay_hash
+        return bytes.fromhex(state.overlay_hash)
 
 
 def _sort_steps_by_state_timestamp(
