@@ -124,12 +124,8 @@ class Executor:
 
     def refresh_overlay_packages_list(self) -> None:
         """Update the list of packages available in the overlay environment."""
-        with self._mounted_package_cache() as ctx:
+        with PackageCacheMounter(self._overlay_manager) as ctx:
             ctx.refresh_packages_list()
-
-    def _mounted_package_cache(self) -> PackageCacheMounter:
-        """Return a context manager for the mounted package cache."""
-        return PackageCacheMounter(self._overlay_manager)
 
     def _run_action(self, action: Action) -> None:
         """Execute the given action for a part using the provided step information.
@@ -159,6 +155,7 @@ class Executor:
             part,
             part_info=PartInfo(self._project_info, part),
             part_list=self._part_list,
+            overlay_manager=self._overlay_manager,
             base_layer_hash=self._base_layer_hash,
         )
         self._handler[part.name] = handler

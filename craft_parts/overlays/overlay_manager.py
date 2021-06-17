@@ -132,14 +132,24 @@ class OverlayManager:
             logger.warning("overlay filesystem not mounted")
             return
 
-        # workaround for pychroot messing with resolv.conf when it's a symlink
-        resolv = self._project_info.overlay_dir / "etc" / "resolv.conf"
-        if resolv.is_symlink():
-            resolv.unlink()
-            resolv.touch()
+        self._fix_resolv_conf()
 
         with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_dir):
             packages.Repository.refresh_build_packages_list()
+
+    def fetch_packages(self, package_names: List[str]) -> None:
+        """Update the list of available packages in the overlay system."""
+        if not self._base_layer_dir:
+            return
+
+        if not self._overlay_fs:
+            logger.warning("overlay filesystem not mounted")
+            return
+
+        self._fix_resolv_conf()
+
+        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_dir):
+            packages.Repository.fetch_packages(package_names)
 
     def mkdirs(self) -> None:
         """Create overlay directories and mountpoints."""
@@ -149,6 +159,13 @@ class OverlayManager:
             self._project_info.overlay_work_dir,
         ]:
             overlay_dir.mkdir(parents=True, exist_ok=True)
+
+    def _fix_resolv_conf(self) -> None:
+        """Work around problems with pychroot when resolv.conf a symlink."""
+        resolv = self._project_info.overlay_dir / "etc" / "resolv.conf"
+        if resolv.is_symlink():
+            resolv.unlink()
+            resolv.touch()
 
 
 class PackageCacheMounter:
@@ -172,3 +189,7 @@ class PackageCacheMounter:
     def refresh_packages_list(self) -> None:
         """Update the list of available packages in the overlay system."""
         self._overlay_manager.refresh_packages_list()
+
+    def fetch_packages(self, package_names: List[str]) -> None:
+        """Download the specified packages to the local system."""
+        self._overlay_manager.fetch_packages(package_names)

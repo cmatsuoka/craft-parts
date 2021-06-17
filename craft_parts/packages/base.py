@@ -121,6 +121,14 @@ class BaseRepository(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
+    def fetch_packages(cls, package_names: List[str]) -> None:
+        """Download the specified packages to the local package cache.
+
+        :param package_names: A list with the names of the packages to fetch.
+        """
+
+    @classmethod
+    @abc.abstractmethod
     def fetch_stage_packages(
         cls,
         *,
@@ -200,6 +208,10 @@ class DummyRepository(BaseRepository):
         cls, *, application_name: str, target_arch: str
     ) -> None:
         """Update the list of packages available in the repository."""
+
+    @classmethod
+    def fetch_packages(cls, package_names: List[str]) -> None:
+        """Download the specified packages to the local package cache."""
 
     @classmethod
     def fetch_stage_packages(
