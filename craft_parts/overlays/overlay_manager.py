@@ -19,6 +19,7 @@
 import contextlib
 import logging
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -51,7 +52,7 @@ class OverlayManager:
         self._overlay_fs: Optional[OverlayFS] = None
         self._base_layer_dir = base_layer_dir
 
-    def mount_layer(self, part: Part, pkg_cache: bool = False) -> None:
+    def mount_layer(self, part: Part, *, pkg_cache: bool = False) -> None:
         """Mount the overlay step layer stack up to the given part.
 
         :param part: The part corresponding to the topmost layer to mount.
@@ -105,24 +106,6 @@ class OverlayManager:
         self._overlay_fs.unmount()
         self._overlay_fs = None
 
-    def install_packages(self, package_list: List[str]) -> None:
-        """Install packages on the overlay system.
-
-        :param package_list: The list of packages to install.
-        """
-        if not self._base_layer_dir:
-            return
-
-        if not self._overlay_fs:
-            logger.warning("overlay filesystem not mounted")
-            return
-
-        if not package_list:
-            return
-
-        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_dir):
-            packages.Repository.install_build_packages(package_list)
-
     def refresh_packages_list(self) -> None:
         """Update the list of available packages in the overlay system."""
         if not self._base_layer_dir:
@@ -150,6 +133,21 @@ class OverlayManager:
 
         with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_dir):
             packages.Repository.fetch_packages(package_names)
+
+    def install_packages(self, package_names: List[str]) -> None:
+        """Update the list of available packages in the overlay system."""
+        if not self._base_layer_dir:
+            return
+
+        if not self._overlay_fs:
+            logger.warning("overlay filesystem not mounted")
+            return
+
+        self._fix_resolv_conf()
+
+        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_dir):
+            packages.Repository.install_build_packages(package_names)
+            shutil.rmtree("/var/cache", ignore_errors=True)
 
     def mkdirs(self) -> None:
         """Create overlay directories and mountpoints."""
@@ -193,3 +191,27 @@ class PackageCacheMounter:
     def fetch_packages(self, package_names: List[str]) -> None:
         """Download the specified packages to the local system."""
         self._overlay_manager.fetch_packages(package_names)
+
+
+class LayerMounter:
+    """Mount and umount the overlay layer stack."""
+
+    def __init__(self, overlay_manager: OverlayManager, top_part: Part):
+        self._overlay_manager = overlay_manager
+        self._overlay_manager.mkdirs()
+        self._top_part = top_part
+        self._pid = os.getpid()
+
+    def __enter__(self):
+        self._overlay_manager.mount_layer(self._top_part, pkg_cache=True)
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if os.getpid() != self._pid:
+            sys.exit()
+        self._overlay_manager.unmount()
+        return False
+
+    def install_packages(self, package_names: List[str]) -> None:
+        """Install the specified packages on the local system."""
+        self._overlay_manager.install_packages(package_names)

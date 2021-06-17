@@ -27,7 +27,7 @@ from typing import Any, Callable, Dict, List, Optional, Set
 from craft_parts import callbacks, errors, overlays, packages, plugins, sources
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, StepInfo
-from craft_parts.overlays import OverlayManager, PackageCacheMounter
+from craft_parts.overlays import LayerMounter, OverlayManager, PackageCacheMounter
 from craft_parts.packages import errors as packages_errors
 from craft_parts.parts import Part
 from craft_parts.plugins import Plugin
@@ -180,6 +180,7 @@ class PartHandler:
         _remove(self._part.part_build_dir)
         self._unpack_stage_packages()
         self._unpack_stage_snaps()
+        self._install_overlay_packages()
 
         # Copy source from the part source dir to the part build dir
         shutil.copytree(
@@ -517,6 +518,14 @@ class PartHandler:
             raise errors.OverlayPackageNotFound(
                 part_name=self._part.name, package_name=err.package_name
             )
+
+    def _install_overlay_packages(self) -> None:
+        overlay_packages = self._part.spec.overlay_packages
+        if not overlay_packages or not self._overlay_manager:
+            return
+
+        with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
+            ctx.install_packages(overlay_packages)
 
     def _unpack_stage_packages(self):
         packages.Repository.unpack_stage_packages(

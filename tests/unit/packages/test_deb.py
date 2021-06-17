@@ -17,7 +17,7 @@
 import contextlib
 import textwrap
 from pathlib import Path
-from subprocess import CalledProcessError
+from subprocess import DEVNULL, CalledProcessError
 from unittest import mock
 from unittest.mock import call
 
@@ -250,6 +250,7 @@ class TestBuildPackages:
                         "DEBCONF_NONINTERACTIVE_SEEN": "true",
                         "DEBIAN_PRIORITY": "critical",
                     },
+                    stdin=DEVNULL,
                 ),
                 call(
                     [
@@ -327,6 +328,7 @@ class TestBuildPackages:
                         "DEBCONF_NONINTERACTIVE_SEEN": "true",
                         "DEBIAN_PRIORITY": "critical",
                     },
+                    stdin=DEVNULL,
                 ),
                 call(
                     ["apt-mark", "auto", "package-installed"],
@@ -367,6 +369,7 @@ class TestBuildPackages:
                         "DEBCONF_NONINTERACTIVE_SEEN": "true",
                         "DEBIAN_PRIORITY": "critical",
                     },
+                    stdin=DEVNULL,
                 ),
                 call(
                     ["apt-mark", "auto", "package"],
@@ -407,6 +410,7 @@ class TestBuildPackages:
                         "DEBCONF_NONINTERACTIVE_SEEN": "true",
                         "DEBIAN_PRIORITY": "critical",
                     },
+                    stdin=DEVNULL,
                 ),
                 call(
                     ["apt-mark", "auto", "package"],

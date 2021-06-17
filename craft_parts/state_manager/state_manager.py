@@ -405,6 +405,9 @@ class StateManager:
 
         state = stw.state
 
+        if not state.overlay_hash:
+            return b""
+
         return bytes.fromhex(state.overlay_hash)
 
 
