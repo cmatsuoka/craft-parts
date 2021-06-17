@@ -362,7 +362,10 @@ class Ubuntu(BaseRepository):
 
     @classmethod
     def install_build_packages(
-        cls, package_names: List[str], list_only: bool = False
+        cls,
+        package_names: List[str],
+        *,
+        list_only: bool = False,
     ) -> List[str]:
         """Install packages on the host system."""
         if not package_names:
@@ -415,8 +418,13 @@ class Ubuntu(BaseRepository):
             apt_command.extend(["-o", "Dpkg::Progress-Fancy=1"])
         apt_command.append("install")
 
+        # Set stdin to /dev/null to prevent SIGTTIN/SIGTTOU problems, see
+        # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=555632
+
         try:
-            subprocess.check_call(apt_command + package_names, env=env)
+            subprocess.check_call(
+                apt_command + package_names, env=env, stdin=subprocess.DEVNULL
+            )
         except subprocess.CalledProcessError as err:
             raise errors.BuildPackagesNotInstalled(packages=package_names) from err
 
