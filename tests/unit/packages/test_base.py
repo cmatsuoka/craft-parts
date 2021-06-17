@@ -29,6 +29,7 @@ class TestBaseRepository:
             "is_package_installed",
             "get_packages_for_source_type",
             "install_build_packages",
+            "fetch_packages",
             "fetch_stage_packages",
             "refresh_build_packages_list",
             "refresh_stage_packages_list",

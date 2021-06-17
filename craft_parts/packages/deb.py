@@ -360,6 +360,11 @@ class Ubuntu(BaseRepository):
             return apt_cache.get_packages_marked_for_installation()
 
     @classmethod
+    def fetch_packages(cls, package_names: List[str]) -> None:
+        """Download the specified packages to the local package cache area."""
+        cls._download_packages(package_names)
+
+    @classmethod
     def install_build_packages(
         cls, package_names: List[str], list_only: bool = False
     ) -> List[str]:
@@ -421,6 +426,37 @@ class Ubuntu(BaseRepository):
             process_run(["apt-mark", "auto"] + versionless_names, env=env)
         except subprocess.CalledProcessError as err:
             logger.warning("Impossible to mark packages as auto-installed: %s", err)
+
+    @classmethod
+    def _download_packages(cls, package_names: List[str]) -> None:
+        logger.info("Downloading packages: %s", " ".join(package_names))
+        env = os.environ.copy()
+        env.update(
+            {
+                "DEBIAN_FRONTEND": "noninteractive",
+                "DEBCONF_NONINTERACTIVE_SEEN": "true",
+                "DEBIAN_PRIORITY": "critical",
+            }
+        )
+
+        apt_command = [
+            "sudo",
+            "--preserve-env",
+            "apt-get",
+            "--no-install-recommends",
+            "-y",
+            "--allow-downgrades",
+            "--download-only",
+        ]
+        if not os_utils.is_dumb_terminal():
+            apt_command.extend(["-o", "Dpkg::Progress-Fancy=1"])
+        apt_command.append("install")
+
+        try:
+            subprocess.check_call(apt_command + package_names, env=env)
+        except subprocess.CalledProcessError as err:
+            # FIXME: raise a more appropriate error
+            raise errors.BuildPackagesNotInstalled(packages=package_names) from err
 
     @classmethod
     def fetch_stage_packages(

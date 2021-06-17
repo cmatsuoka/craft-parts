@@ -27,6 +27,7 @@ from typing import Any, Callable, Dict, List, Optional, Set
 from craft_parts import callbacks, errors, overlays, packages, plugins, sources
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, StepInfo
+from craft_parts.overlays import OverlayManager, PackageCacheMounter
 from craft_parts.packages import errors as packages_errors
 from craft_parts.parts import Part
 from craft_parts.plugins import Plugin
@@ -56,11 +57,13 @@ class PartHandler:
         part_info: PartInfo,
         part_list: List[Part],
         ignore_patterns: Optional[List[str]] = None,
+        overlay_manager: Optional[OverlayManager] = None,
         base_layer_hash: bytes = b"",
     ):
         self._part = part
         self._part_info = part_info
         self._part_list = part_list
+        self._overlay_manager = overlay_manager
         self._base_layer_hash = base_layer_hash
 
         self._plugin = plugins.get_plugin(
@@ -122,6 +125,7 @@ class PartHandler:
 
         fetched_packages = self._fetch_stage_packages(step_info=step_info)
         fetched_snaps = self._fetch_stage_snaps()
+        self._fetch_overlay_packages()
 
         self._run_step(
             step_info=step_info,
@@ -500,6 +504,19 @@ class PartHandler:
         )
 
         return stage_snaps
+
+    def _fetch_overlay_packages(self) -> None:
+        overlay_packages = self._part.spec.overlay_packages
+        if not overlay_packages or not self._overlay_manager:
+            return
+
+        try:
+            with PackageCacheMounter(self._overlay_manager) as ctx:
+                ctx.fetch_packages(overlay_packages)
+        except packages_errors.PackageNotFound as err:
+            raise errors.OverlayPackageNotFound(
+                part_name=self._part.name, package_name=err.package_name
+            )
 
     def _unpack_stage_packages(self):
         packages.Repository.unpack_stage_packages(
