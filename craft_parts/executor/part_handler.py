@@ -168,6 +168,20 @@ class PartHandler:
 
         return overlays.compute_layer_hash(self._part, previous_layer_hash)
 
+    def _check_overlay_integrity(self) -> bytes:
+        part_hash = self._base_layer_hash
+
+        for part in self._part_list:
+            state_hash = overlays.load_layer_hash(part)
+            part_hash = overlays.compute_layer_hash(part, part_hash)
+            if part_hash != state_hash:
+                raise RuntimeError("overlay inconsistency")
+
+        if not part_hash:
+            raise RuntimeError("overlay inconsistency")
+
+        return part_hash
+
     def _run_build(self, step_info: StepInfo, *, update=False) -> StepState:
         self._make_dirs()
         _remove(self._part.part_build_dir)
@@ -210,11 +224,13 @@ class PartHandler:
         }
         assets.update(_get_machine_manifest())
 
+        overlay_hash = self._check_overlay_integrity()
+
         state = states.BuildState(
             part_properties=self._part_properties,
             project_options=step_info.project_options,
             assets=assets,
-            overlay_hash=b"",  # FIXME: obtain overlay hash
+            overlay_hash=overlay_hash.hex(),
         )
         return state
 
@@ -227,12 +243,14 @@ class PartHandler:
             work_dir=self._part.stage_dir,
         )
 
+        overlay_hash = self._check_overlay_integrity()
+
         state = states.StageState(
             part_properties=self._part_properties,
             project_options=step_info.project_options,
             files=contents.files,
             directories=contents.dirs,
-            overlay_hash=b"",  # FIXME: obtain overlay hash
+            overlay_hash=overlay_hash.hex(),
         )
         return state
 
