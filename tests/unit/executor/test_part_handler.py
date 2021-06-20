@@ -101,7 +101,7 @@ class TestPartHandling:
                 "installed-packages": ["hello=2.10"],
                 "installed-snaps": ["snapcraft=6466"],
             },
-            overlay_hash="",
+            overlay_hash="df58248c414f342c81e056b40bee12d17a08bf61",
         )
 
     def test_run_stage(self, mocker):
@@ -116,7 +116,7 @@ class TestPartHandling:
             project_options=self._part_info.project_options,
             files={"file"},
             directories={"dir"},
-            overlay_hash="",
+            overlay_hash="df58248c414f342c81e056b40bee12d17a08bf61",
         )
 
     def test_run_prime(self, mocker):
@@ -503,7 +503,7 @@ class TestHelpers:
             p2, part_info=PartInfo(info, part=p2), part_list=[p1, p2]
         )
 
-        for step in [Step.PULL, Step.BUILD, Step.STAGE]:
+        for step in [Step.PULL, Step.OVERLAY, Step.BUILD, Step.STAGE]:
             handler1.run_action(Action("p1", step))
             handler2.run_action(Action("p2", step))
 

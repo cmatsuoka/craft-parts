@@ -63,6 +63,11 @@ class Sequencer:
         self._layer_state = LayerStateManager(self._part_list, base_layer_hash)
         self._actions: List[Action] = []
 
+        self._overlay_viewers = set()
+        for part in part_list:
+            if parts.has_overlay_visibility(part, part_list=part_list):
+                self._overlay_viewers.add(part)
+
     def plan(self, target_step: Step, part_names: Sequence[str] = None) -> List[Action]:
         """Determine the list of steps to execute for each part.
 
@@ -169,7 +174,7 @@ class Sequencer:
         if not prerequisite_step:
             return
 
-        all_deps = parts.part_dependencies(part.name, part_list=self._part_list)
+        all_deps = parts.part_dependencies(part, part_list=self._part_list)
         deps = {p for p in all_deps if self._sm.should_step_run(p, prerequisite_step)}
         for dep in deps:
             self._add_all_actions(
@@ -198,7 +203,7 @@ class Sequencer:
             )
             self._layer_state.set_layer_hash(part, layer_hash)
 
-        elif (step == Step.BUILD and part.sees_overlay) or (
+        elif (step == Step.BUILD and part in self._overlay_viewers) or (
             step == Step.STAGE and part.has_overlay
         ):
             # The overlay step for all parts should run before we build a part
@@ -357,7 +362,10 @@ class Sequencer:
             current_overlay_hash = self._layer_state.get_overlay_hash()
             state_overlay_hash = self._sm.get_overlay_hash(part, step)
 
-            if part.sees_overlay and current_overlay_hash != state_overlay_hash:
+            if (
+                part in self._overlay_viewers
+                and current_overlay_hash != state_overlay_hash
+            ):
                 logger.debug("%s:%s can see overlay and it changed", part.name, step)
                 self._rerun_step(part, step, reason="overlay changed")
                 return True

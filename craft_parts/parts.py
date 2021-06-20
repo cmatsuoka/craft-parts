@@ -41,7 +41,6 @@ class PartSpec(BaseModel):
     source_type: str = ""
     disable_parallel: bool = False
     after: List[str] = []
-    overlay_visibility: bool = False
     overlay_packages: List[str] = []
     overlay_files: List[str] = Field(["*"], alias="overlay")
     stage_snaps: List[str] = []
@@ -281,11 +280,6 @@ class Part:
             or self.spec.overlay_files != ["*"]
         )
 
-    @property
-    def sees_overlay(self) -> bool:
-        """Return whether this part has overlay visibility."""
-        return self.spec.overlay_visibility
-
 
 def part_by_name(name: str, part_list: List[Part]) -> Part:
     """Obtain the part with the given name from the part list.
@@ -366,20 +360,14 @@ def sort_parts(part_list: List[Part]) -> List[Part]:
 
 
 def part_dependencies(
-    name: str, *, part_list: List[Part], recursive: bool = False
+    part: Part, *, part_list: List[Part], recursive: bool = False
 ) -> Set[Part]:
     """Return a set of all the parts upon which the named part depends.
 
-    :param name: The name of the dependent part.
+    :param part: The dependent part.
 
     :returns: The set of parts the given part depends on.
-
-    :raises InvalidPartName: if a part name is not defined.
     """
-    part = next((p for p in part_list if p.name == name), None)
-    if not part:
-        raise errors.InvalidPartName(name)
-
     dependency_names = set(part.dependencies)
     dependencies = {p for p in part_list if p.name in dependency_names}
 
@@ -387,8 +375,34 @@ def part_dependencies(
         # No need to worry about infinite recursion due to circular
         # dependencies since the YAML validation won't allow it.
         for dependency_name in dependency_names:
+            dep = part_by_name(dependency_name, part_list=part_list)
             dependencies |= part_dependencies(
-                dependency_name, part_list=part_list, recursive=recursive
+                dep, part_list=part_list, recursive=recursive
             )
 
     return dependencies
+
+
+def has_overlay_visibility(part: Part, *, part_list: List[Part]) -> bool:
+    """Check if a part can see the overlay filesystem.
+
+    A part that declares overlay parameters and all parts depending on it
+    are granted permission to see overlay filesystem.
+
+    :param part: The part whose overlay visibility will be checked.
+    :param part_list: A list of all parts in the project.
+
+    :return: Whether the part has overlay visibility.
+    """
+    if part.has_overlay:
+        return True
+
+    if not part.spec.after:
+        return False
+
+    deps = part_dependencies(part, part_list=part_list)
+    for dep in deps:
+        if has_overlay_visibility(dep, part_list=part_list):
+            return True
+
+    return False

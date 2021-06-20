@@ -164,28 +164,13 @@ class PartHandler:
             directories=contents.dirs,
         )
 
-    def _compute_layer_hash(self):
-        index = self._part_list.index(self._part)
-        if index > 0:
-            previous_layer_hash = overlays.load_layer_hash(self._part_list[index - 1])
-            if not previous_layer_hash:
-                raise RuntimeError("overlay inconsistency")
-        else:
-            previous_layer_hash = self._base_layer_hash
-
-        return overlays.compute_layer_hash(self._part, previous_layer_hash)
-
-    def _check_overlay_integrity(self) -> bytes:
+    def _compute_layer_hash(self, *, all_parts: bool = False) -> bytes:
         part_hash = self._base_layer_hash
 
         for part in self._part_list:
-            state_hash = overlays.load_layer_hash(part)
             part_hash = overlays.compute_layer_hash(part, part_hash)
-            if part_hash != state_hash:
-                raise RuntimeError("overlay inconsistency")
-
-        if not part_hash:
-            raise RuntimeError("overlay inconsistency")
+            if not all_parts and part.name == self._part.name:
+                break
 
         return part_hash
 
@@ -232,7 +217,7 @@ class PartHandler:
         }
         assets.update(_get_machine_manifest())
 
-        overlay_hash = self._check_overlay_integrity()
+        overlay_hash = self._compute_layer_hash(all_parts=True)
 
         state = states.BuildState(
             part_properties=self._part_properties,
@@ -251,7 +236,7 @@ class PartHandler:
             work_dir=self._part.stage_dir,
         )
 
-        overlay_hash = self._check_overlay_integrity()
+        overlay_hash = self._compute_layer_hash(all_parts=True)
 
         state = states.StageState(
             part_properties=self._part_properties,

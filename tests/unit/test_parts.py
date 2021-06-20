@@ -40,7 +40,6 @@ class TestPartSpecs:
             "source-type": "tar",
             "disable-parallel": True,
             "after": ["bar"],
-            "overlay-visibility": False,
             "overlay-packages": ["overlay-pkg1", "overlay-pkg2"],
             "stage-snaps": ["stage-snap1", "stage-snap2"],
             "stage-packages": ["stage-pkg1", "stage-pkg2"],
@@ -247,11 +246,6 @@ class TestPartData:
         )
         assert p.has_overlay == result
 
-    @pytest.mark.parametrize("visible", [True, False])
-    def test_part_sees_overlay(self, visible):
-        p = Part("foo", {"overlay-visibility": visible})
-        assert p.sees_overlay == visible
-
 
 class TestPartOrdering:
     """Test part ordering.
@@ -377,12 +371,23 @@ class TestPartHelpers:
         p3 = Part("baz", {})
         p4 = Part("qux", {})
 
-        x = parts.part_dependencies("foo", part_list=[p1, p2, p3, p4])
+        x = parts.part_dependencies(p1, part_list=[p1, p2, p3, p4])
         assert x == {p2, p3}
 
-        x = parts.part_dependencies("foo", part_list=[p1, p2, p3, p4], recursive=True)
+        x = parts.part_dependencies(p1, part_list=[p1, p2, p3, p4], recursive=True)
         assert x == {p2, p3, p4}
 
-        with pytest.raises(errors.InvalidPartName) as raised:
-            parts.part_dependencies("invalid", part_list=[p1, p2, p3, p4])
-        assert raised.value.part_name == "invalid"
+    def test_has_overlay_visibility(self):
+        p1 = Part("foo", {"after": ["bar", "baz"]})
+        p2 = Part("bar", {"after": ["qux"]})
+        p3 = Part("baz", {})
+        p4 = Part("qux", {"override-overlay": "echo"})
+        p5 = Part("foobar", {"after": ["baz"]})
+
+        part_list = [p1, p2, p3, p4, p5]
+
+        assert parts.has_overlay_visibility(p1, part_list=part_list) is True
+        assert parts.has_overlay_visibility(p2, part_list=part_list) is True
+        assert parts.has_overlay_visibility(p3, part_list=part_list) is False
+        assert parts.has_overlay_visibility(p4, part_list=part_list) is True
+        assert parts.has_overlay_visibility(p5, part_list=part_list) is False
