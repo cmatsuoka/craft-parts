@@ -213,7 +213,7 @@ def test_sequencer_ensure_overlay_consistency(mocker):
             ),
         ]
     )
-    assert value.hex() == "78cdef1a19fdd12023e37ab5b62381e2d353f4ff"
+    assert value.hex() == "be1bdec0aa74b4dcb079943e70528096cca985f8"
 
 
 @pytest.mark.usefixtures("new_dir")
@@ -224,7 +224,7 @@ def test_sequencer_ensure_overlay_consistency_no_run(mocker):
 
     Path("parts/p1/state").mkdir(parents=True)
     overlays.save_layer_hash(
-        p1, hash_bytes=bytes.fromhex("df58248c414f342c81e056b40bee12d17a08bf61")
+        p1, hash_bytes=bytes.fromhex("da39a3ee5e6b4b0d3255bfef95601890afd80709")
     )
 
     seq = Sequencer(part_list=[p1, p2], project_info=info)
@@ -233,7 +233,7 @@ def test_sequencer_ensure_overlay_consistency_no_run(mocker):
 
     value = seq._ensure_overlay_consistency(p2, skip_last=True)
     mock_add_all_actions.assert_not_called()
-    assert value.hex() == "78cdef1a19fdd12023e37ab5b62381e2d353f4ff"
+    assert value.hex() == "be1bdec0aa74b4dcb079943e70528096cca985f8"
 
 
 @pytest.mark.usefixtures("new_dir")
@@ -244,7 +244,7 @@ def test_sequencer_ensure_overlay_consistency_dont_skip_last(mocker):
 
     Path("parts/p1/state").mkdir(parents=True)
     overlays.save_layer_hash(
-        p1, hash_bytes=bytes.fromhex("df58248c414f342c81e056b40bee12d17a08bf61")
+        p1, hash_bytes=bytes.fromhex("da39a3ee5e6b4b0d3255bfef95601890afd80709")
     )
 
     seq = Sequencer(part_list=[p1, p2], project_info=info)
@@ -257,7 +257,7 @@ def test_sequencer_ensure_overlay_consistency_dont_skip_last(mocker):
         part_names=["p2"],
         reason=None,
     )
-    assert value.hex() == "78cdef1a19fdd12023e37ab5b62381e2d353f4ff"
+    assert value.hex() == "be1bdec0aa74b4dcb079943e70528096cca985f8"
 
 
 @pytest.mark.usefixtures("new_dir")
@@ -285,4 +285,4 @@ def test_sequencer_ensure_overlay_consistency_rerun(mocker):
         part_names=["p1"],
         reason="it is your destiny",
     )
-    assert value.hex() == "78cdef1a19fdd12023e37ab5b62381e2d353f4ff"
+    assert value.hex() == "be1bdec0aa74b4dcb079943e70528096cca985f8"

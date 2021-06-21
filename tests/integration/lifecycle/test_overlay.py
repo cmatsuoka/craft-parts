@@ -294,17 +294,18 @@ class TestOverlayInvalidationFlow:
             # fmt: on
         ]
 
+    # invalidation example 2
     def test_pull_dirty_multipart(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
-              p1:
+              A:
                 plugin: nil
-                after: [p2]
-              p2:
+                after: [B]
+              B:
                 plugin: nil
                 override-overlay: echo overlay
-              p3:
+              C:
                 plugin: nil
             """
         )
@@ -319,42 +320,43 @@ class TestOverlayInvalidationFlow:
         actions = lf.plan(Step.PRIME)
         assert actions == [
             # fmt: off
-            Action("p2", Step.PULL),
-            Action("p1", Step.PULL),
-            Action("p3", Step.PULL),
-            Action("p2", Step.OVERLAY),
-            Action("p1", Step.OVERLAY),
-            Action("p3", Step.OVERLAY),
-            Action("p2", Step.BUILD),
-            Action("p2", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.STAGE, action_type=ActionType.RUN, reason="required to build 'p1'"),
-            Action("p1", Step.BUILD),
-            Action("p3", Step.BUILD),
-            Action("p2", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p1", Step.STAGE),
-            Action("p3", Step.STAGE),
-            Action("p2", Step.PRIME),
-            Action("p1", Step.PRIME),
-            Action("p3", Step.PRIME),
+            Action("B", Step.PULL),
+            Action("A", Step.PULL),
+            Action("C", Step.PULL),
+            Action("B", Step.OVERLAY),
+            Action("A", Step.OVERLAY),
+            Action("C", Step.OVERLAY),
+            Action("B", Step.BUILD),
+            Action("B", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.STAGE, action_type=ActionType.RUN, reason="required to build 'A'"),
+            Action("A", Step.BUILD),
+            Action("C", Step.BUILD),
+            Action("B", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
+            Action("A", Step.STAGE),
+            Action("C", Step.STAGE),
+            Action("B", Step.PRIME),
+            Action("A", Step.PRIME),
+            Action("C", Step.PRIME),
             # fmt: on
         ]
 
         with lf.action_executor() as ctx:
             ctx.execute(actions)
 
-        # change a property of interest in p2
+        # change overlay packages in B
         parts_yaml = textwrap.dedent(
             """
             parts:
-              p1:
+              A:
                 plugin: nil
-                after: [p2]
-              p2:
+                after: [B]
+              B:
                 plugin: nil
                 overlay-packages: [hello]
-              p3:
+                override-overlay: echo overlay
+              C:
                 plugin: nil
             """
         )
@@ -369,25 +371,25 @@ class TestOverlayInvalidationFlow:
         actions = lf.plan(Step.PRIME)
         assert actions == [
             # fmt: off
-            Action("p2", Step.PULL, action_type=ActionType.RERUN, reason="'overlay-packages' property changed"),
-            Action("p1", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p3", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.OVERLAY),
-            Action("p1", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
-            Action("p3", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
-            Action("p2", Step.BUILD),
-            Action("p2", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.STAGE, action_type=ActionType.RUN, reason="required to build 'p1'"),
-            Action("p1", Step.BUILD, action_type=ActionType.RERUN, reason="'p2' changed"),
-            Action("p3", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p1", Step.STAGE),
-            Action("p3", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.PRIME),
-            Action("p1", Step.PRIME),
-            Action("p3", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.PULL, action_type=ActionType.RERUN, reason="'overlay-packages' property changed"),
+            Action("A", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("C", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.OVERLAY),
+            Action("A", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
+            Action("C", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
+            Action("B", Step.BUILD),
+            Action("B", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.STAGE, action_type=ActionType.RUN, reason="required to build 'A'"),
+            Action("A", Step.BUILD, action_type=ActionType.RERUN, reason="part 'B' stage changed"),
+            Action("C", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
+            Action("A", Step.STAGE),
+            Action("C", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.PRIME),
+            Action("A", Step.PRIME),
+            Action("C", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
             # fmt: on
         ]
 
@@ -395,12 +397,12 @@ class TestOverlayInvalidationFlow:
         parts_yaml = textwrap.dedent(
             """
             parts:
-              p1:
+              A:
                 plugin: nil
-              p2:
+              B:
                 plugin: nil
                 override-overlay: echo overlay
-              p3:
+              C:
                 plugin: nil
             """
         )
@@ -414,36 +416,36 @@ class TestOverlayInvalidationFlow:
 
         actions = lf.plan(Step.PRIME)
         assert actions == [
-            Action("p1", Step.PULL),
-            Action("p2", Step.PULL),
-            Action("p3", Step.PULL),
-            Action("p1", Step.OVERLAY),
-            Action("p2", Step.OVERLAY),
-            Action("p3", Step.OVERLAY),
-            Action("p1", Step.BUILD),
-            Action("p2", Step.BUILD),
-            Action("p3", Step.BUILD),
-            Action("p1", Step.STAGE),
-            Action("p2", Step.STAGE),
-            Action("p3", Step.STAGE),
-            Action("p1", Step.PRIME),
-            Action("p2", Step.PRIME),
-            Action("p3", Step.PRIME),
+            Action("A", Step.PULL),
+            Action("B", Step.PULL),
+            Action("C", Step.PULL),
+            Action("A", Step.OVERLAY),
+            Action("B", Step.OVERLAY),
+            Action("C", Step.OVERLAY),
+            Action("A", Step.BUILD),
+            Action("B", Step.BUILD),
+            Action("C", Step.BUILD),
+            Action("A", Step.STAGE),
+            Action("B", Step.STAGE),
+            Action("C", Step.STAGE),
+            Action("A", Step.PRIME),
+            Action("B", Step.PRIME),
+            Action("C", Step.PRIME),
         ]
 
         with lf.action_executor() as ctx:
             ctx.execute(actions)
 
-        # invalidate p2 overlay
+        # invalidate B overlay
         parts_yaml = textwrap.dedent(
             """
             parts:
-              p1:
+              A:
                 plugin: nil
-              p2:
+              B:
                 plugin: nil
                 override-overlay: echo changed
-              p3:
+              C:
                 plugin: nil
             """
         )
@@ -458,21 +460,21 @@ class TestOverlayInvalidationFlow:
         actions = lf.plan(Step.PRIME)
         assert actions == [
             # fmt: off
-            Action("p1", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p3", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p1", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.OVERLAY, action_type=ActionType.RERUN, reason="'override-overlay' property changed"),
-            Action("p3", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
-            Action("p1", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.BUILD, action_type=ActionType.RERUN, reason="overlay changed"),
-            Action("p3", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p1", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.STAGE),
-            Action("p3", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p1", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
-            Action("p2", Step.PRIME),
-            Action("p3", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
+            Action("A", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("C", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
+            Action("A", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.OVERLAY, action_type=ActionType.RERUN, reason="'override-overlay' property changed"),
+            Action("C", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
+            Action("A", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.BUILD, action_type=ActionType.RERUN, reason="overlay changed"),
+            Action("C", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
+            Action("A", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.STAGE),
+            Action("C", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
+            Action("A", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
+            Action("B", Step.PRIME),
+            Action("C", Step.PRIME, action_type=ActionType.SKIP, reason="already ran"),
             # fmt: on
         ]
 
@@ -558,6 +560,7 @@ class TestOverlaySpecScenarios:
             parts:
               A:
                 plugin: nil
+                after: [B]
               B:
                 plugin: nil
             """
@@ -567,14 +570,14 @@ class TestOverlaySpecScenarios:
 
         actions = _filter_skip(lf.plan(Step.STAGE))
         assert actions == [
-            Action("A", Step.PULL),
             Action("B", Step.PULL),
-            Action("A", Step.OVERLAY),
+            Action("A", Step.PULL),
             Action("B", Step.OVERLAY),
-            Action("A", Step.BUILD),
+            Action("A", Step.OVERLAY),
             Action("B", Step.BUILD),
+            Action("B", Step.STAGE, reason="required to build 'A'"),
+            Action("A", Step.BUILD),
             Action("A", Step.STAGE),
-            Action("B", Step.STAGE),
         ]
 
     def test_overlay_spec_scenario_2_stage_all(self, fake_call):
@@ -639,7 +642,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_4_stage_a(self, fake_call):
+    def test_overlay_spec_scenario_3_stage_a(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -671,7 +674,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_4_stage_b(self, fake_call):
+    def test_overlay_spec_scenario_3_stage_b(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -701,13 +704,12 @@ class TestOverlaySpecScenarios:
             Action("B", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_5_stage_a(self, fake_call):
+    def test_overlay_spec_scenario_4_stage_a(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
               A:
                 plugin: nil
-                override-overlay: echo A
               B:
                 plugin: nil
                 override-overlay: echo B
@@ -725,19 +727,16 @@ class TestOverlaySpecScenarios:
         assert actions == [
             Action("A", Step.PULL),
             Action("A", Step.OVERLAY),
-            Action("B", Step.PULL, reason="required to build 'A'"),
-            Action("B", Step.OVERLAY, reason="required to build 'A'"),
             Action("A", Step.BUILD),
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_5_stage_b(self, fake_call):
+    def test_overlay_spec_scenario_4_stage_b(self, fake_call):
         parts_yaml = textwrap.dedent(
             """
             parts:
               A:
                 plugin: nil
-                override-overlay: echo A
               B:
                 plugin: nil
                 override-overlay: echo B

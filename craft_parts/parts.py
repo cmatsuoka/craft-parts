@@ -42,7 +42,6 @@ class PartSpec(BaseModel):
     disable_parallel: bool = False
     after: List[str] = []
     overlay_packages: List[str] = []
-    overlay_files: List[str] = Field(["*"], alias="overlay")
     stage_snaps: List[str] = []
     stage_packages: List[str] = []
     build_snaps: List[str] = []
@@ -275,9 +274,7 @@ class Part:
     def has_overlay(self) -> bool:
         """Return whether this part declares overlay content."""
         return (
-            self.spec.overlay_packages != []
-            or self.spec.override_overlay is not None
-            or self.spec.overlay_files != ["*"]
+            self.spec.overlay_packages != [] or self.spec.override_overlay is not None
         )
 
 

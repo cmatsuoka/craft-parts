@@ -36,9 +36,6 @@ def compute_layer_hash(part: Part, previous_layer_hash: bytes) -> bytes:
     for entry in part.spec.overlay_packages:
         hasher.update(entry.encode())
 
-    for entry in part.spec.overlay_files:
-        hasher.update(entry.encode())
-
     if part.spec.override_overlay:
         hasher.update(part.spec.override_overlay.encode())
 
