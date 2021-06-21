@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from copy import deepcopy
+from functools import partial
 
 import pytest
 
@@ -386,8 +387,12 @@ class TestPartHelpers:
 
         part_list = [p1, p2, p3, p4, p5]
 
-        assert parts.has_overlay_visibility(p1, part_list=part_list) is True
-        assert parts.has_overlay_visibility(p2, part_list=part_list) is True
-        assert parts.has_overlay_visibility(p3, part_list=part_list) is False
-        assert parts.has_overlay_visibility(p4, part_list=part_list) is True
-        assert parts.has_overlay_visibility(p5, part_list=part_list) is False
+        has_overlay_visibility = partial(
+            parts.has_overlay_visibility, viewers=set(), part_list=part_list
+        )
+
+        assert has_overlay_visibility(p1) is True
+        assert has_overlay_visibility(p2) is True
+        assert has_overlay_visibility(p3) is False
+        assert has_overlay_visibility(p4) is True
+        assert has_overlay_visibility(p5) is False

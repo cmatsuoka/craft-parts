@@ -17,7 +17,7 @@
 """Determine the sequence of lifecycle actions to be executed."""
 
 import logging
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Set
 
 from craft_parts import parts, steps
 from craft_parts.actions import Action, ActionType
@@ -63,9 +63,11 @@ class Sequencer:
         self._layer_state = LayerStateManager(self._part_list, base_layer_hash)
         self._actions: List[Action] = []
 
-        self._overlay_viewers = set()
+        self._overlay_viewers: Set[Part] = set()
         for part in part_list:
-            if parts.has_overlay_visibility(part, part_list=part_list):
+            if parts.has_overlay_visibility(
+                part, viewers=self._overlay_viewers, part_list=part_list
+            ):
                 self._overlay_viewers.add(part)
 
     def plan(self, target_step: Step, part_names: Sequence[str] = None) -> List[Action]:
