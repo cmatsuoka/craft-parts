@@ -19,6 +19,7 @@
 This plugin just dumps the content from a specified part source.
 """
 
+import sys
 from typing import Any, Dict, List, Set
 
 from .base import Plugin
@@ -65,4 +66,10 @@ class DumpPlugin(Plugin):
     def get_build_commands(self) -> List[str]:
         """Return a list of commands to run during the build step."""
         install_dir = self._part_info.part_install_dir
-        return [f'cp --archive --link --no-dereference . "{install_dir}"']
+
+        if sys.platform == "linux":
+            cp_cmd = "cp --archive --link --no-dereference"
+        else:
+            cp_cmd = "cp -a -l"
+
+        return [f'{cp_cmd} . "{install_dir}"']

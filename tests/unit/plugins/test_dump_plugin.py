@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -52,10 +53,15 @@ class TestPluginDump:
     def test_get_build_environment(self):
         assert self._plugin.get_build_environment() == dict()
 
-    def test_get_build_commands(self):
+    def test_get_build_commands_gnu_cp(self, mocker):
+        mocker.patch.object(sys, "platform", new="linux")
         assert self._plugin.get_build_commands() == [
             'cp --archive --link --no-dereference . "install/dir"'
         ]
+
+    def test_get_build_commands_bsd_cp(self, mocker):
+        mocker.patch.object(sys, "platform", new="freebsd13")
+        assert self._plugin.get_build_commands() == ['cp -a -l . "install/dir"']
 
     def test_out_of_source_build(self):
         assert self._plugin.out_of_source_build is False
