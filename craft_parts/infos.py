@@ -285,6 +285,13 @@ _ARCH_TRANSLATIONS: Dict[str, Dict[str, Any]] = {
         "triplet": "aarch64-linux-gnu",
         "core-dynamic-linker": "lib/ld-linux-aarch64.so.1",
     },
+    "amd64": {
+        "kernel": "x86",
+        "deb": "amd64",
+        "uts_machine": "x86_64",
+        "triplet": "x86_64-linux-gnu",
+        "core-dynamic-linker": "lib64/ld-linux-x86-64.so.2",
+    },
     "armv7l": {
         "kernel": "arm",
         "deb": "armhf",
