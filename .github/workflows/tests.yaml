@@ -45,30 +45,37 @@ jobs:
           pip install -U -r requirements.txt -r requirements-dev.txt
           pip install -e .
       - name: Run black
+        if: ${{ (matrix.os == 'ubuntu-20.04') && (matrix.python-version == '3.8') }}
         run: |
           source ${HOME}/.venv/bin/activate
           make test-black
       - name: Run codespell
+        if: ${{ (matrix.os == 'ubuntu-20.04') && (matrix.python-version == '3.8') }}
         run: |
           source ${HOME}/.venv/bin/activate
           make test-codespell
       - name: Run flake8
+        if: ${{ (matrix.os == 'ubuntu-20.04') && (matrix.python-version == '3.8') }}
         run: |
           source ${HOME}/.venv/bin/activate
           make test-flake8
       - name: Run isort
+        if: ${{ (matrix.os == 'ubuntu-20.04') && (matrix.python-version == '3.8') }}
         run: |
           source ${HOME}/.venv/bin/activate
           make test-isort
       - name: Run mypy
+        if: ${{ (matrix.os == 'ubuntu-20.04') && (matrix.python-version == '3.8') }}
         run: |
           source ${HOME}/.venv/bin/activate
           make test-mypy
       - name: Run pydocstyle
+        if: ${{ (matrix.os == 'ubuntu-20.04') && (matrix.python-version == '3.8') }}
         run: |
           source ${HOME}/.venv/bin/activate
           make test-pydocstyle
       - name: Run pyright
+        if: ${{ (matrix.os == 'ubuntu-20.04') && (matrix.python-version == '3.8') }}
         run: |
           sudo apt install -y npm
           sudo npm install -g pyright
