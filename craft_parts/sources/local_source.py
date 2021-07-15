@@ -18,12 +18,15 @@
 
 import functools
 import glob
+import logging
 import os
 from typing import List, Optional
 
 from craft_parts.utils import file_utils
 
 from .base import SourceHandler
+
+logger = logging.getLogger(__name__)
 
 # TODO: change file operations to use pathlib
 
@@ -41,6 +44,7 @@ class LocalSource(SourceHandler):
             self._dirs.stage_dir.name,
             self._dirs.prime_dir.name,
             "*.snap",  # FIXME: this should be specified by the application
+            "*.charm",  # FIXME: this should be specified by the application
         ]
         self._ignore = functools.partial(
             _ignore, self.source_abspath, os.getcwd(), ignore_patterns
@@ -104,6 +108,9 @@ class LocalSource(SourceHandler):
                     else:
                         self._updated_directories.add(relpath)
 
+        logger.debug("updated files: %s", self._updated_files)
+        logger.debug("updated directories: %s", self._updated_directories)
+
         return len(self._updated_files) > 0 or len(self._updated_directories) > 0
 
     def update(self):
@@ -112,8 +119,11 @@ class LocalSource(SourceHandler):
         Call method :meth:`check_if_outdated` before updating to populate the
         lists of files and directories to copy.
         """
+        logger.debug("update source")
+
         # First, copy the directories
         for directory in self._updated_directories:
+            logger.debug("updating source directory: %s", directory)
             file_utils.link_or_copy_tree(
                 os.path.join(self.source, directory),
                 os.path.join(self.part_src_dir, directory),
@@ -123,6 +133,7 @@ class LocalSource(SourceHandler):
 
         # Now, copy files
         for file_path in self._updated_files:
+            logger.debug("updating source file: %s", file_path)
             self.copy_function(
                 os.path.join(self.source, file_path),
                 os.path.join(self.part_src_dir, file_path),

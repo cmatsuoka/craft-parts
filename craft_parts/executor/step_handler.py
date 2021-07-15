@@ -320,6 +320,7 @@ def _migrate_files(
     follow_symlinks: bool = False,
     fixup_func=lambda *args: None,
 ):
+    logger.debug("migrate files from %r to %r", srcdir, destdir)
     for dirname in sorted(dirs):
         src = os.path.join(srcdir, dirname)
         dst = os.path.join(destdir, dirname)
