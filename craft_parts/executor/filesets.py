@@ -97,9 +97,9 @@ def migratable_filesets(fileset: Fileset, srcdir: str) -> Tuple[Set[str], Set[st
     :return: A tuple containing the set of files and the set of directories
         that can be migrated.
     """
-    includes, excludes = _get_file_list(fileset)
+    includes, excludes, optional = _get_file_list(fileset)
 
-    include_files = _generate_include_set(srcdir, includes)
+    include_files = _generate_include_set(srcdir, includes, optional)
     exclude_files, exclude_dirs = _generate_exclude_set(srcdir, excludes)
 
     files = include_files - exclude_files
@@ -137,7 +137,7 @@ def migratable_filesets(fileset: Fileset, srcdir: str) -> Tuple[Set[str], Set[st
     return resolved_files, resolved_dirs
 
 
-def _get_file_list(fileset: Fileset) -> Tuple[List[str], List[str]]:
+def _get_file_list(fileset: Fileset) -> Tuple[List[str], List[str], List[str]]:
     """Split a fileset to obtain include and exclude file filters.
 
     :param fileset: The fileset to split.
@@ -146,12 +146,15 @@ def _get_file_list(fileset: Fileset) -> Tuple[List[str], List[str]]:
     """
     includes: List[str] = []
     excludes: List[str] = []
+    optional: List[str] = []
 
     for item in fileset.entries:
         if item.startswith("-"):
             excludes.append(item[1:])
         elif item.startswith("\\"):
             includes.append(item[1:])
+        elif item.startswith(":"):
+            optional.append(item[1:])
         else:
             includes.append(item)
 
@@ -164,10 +167,10 @@ def _get_file_list(fileset: Fileset) -> Tuple[List[str], List[str]]:
 
     includes = includes or ["*"]
 
-    return includes, excludes
+    return includes, excludes, optional
 
 
-def _generate_include_set(directory: str, includes: List[str]) -> Set[str]:
+def _generate_include_set(directory: str, includes: List[str], optional: List[str]) -> Set[str]:
     """Obtain the list of files to include based on include file filter.
 
     :param directory: The path to the tree containing the files to filter.
@@ -183,6 +186,15 @@ def _generate_include_set(directory: str, includes: List[str]) -> Set[str]:
             include_files |= set(matches)
         else:
             include_files |= set([os.path.join(directory, include)])
+
+    for include in optional:
+        if "*" in include:
+            pattern = os.path.join(directory, include)
+            matches = iglob(pattern, recursive=True)
+            include_files |= set(matches)
+        else:
+            if os.path.exists(os.path.join(directory, include)):
+                include_files |= set([os.path.join(directory, include)])
 
     include_dirs = [
         x for x in include_files if os.path.isdir(x) and not os.path.islink(x)

@@ -154,6 +154,7 @@ class StepHandler:
 
     def _builtin_prime(self) -> StepContents:
         prime_fileset = Fileset(self._part.spec.prime_files, name="prime")
+        print("===", prime_fileset)
 
         # If we're priming and we don't have an explicit set of files to prime
         # include the files from the stage step
@@ -163,6 +164,8 @@ class StepHandler:
 
         srcdir = str(self._part.part_install_dir)
         files, dirs = filesets.migratable_filesets(prime_fileset, srcdir)
+        print("=== migratable files", files)
+        print("=== migratable dirs", dirs)
         _migrate_files(
             files=files,
             dirs=dirs,
