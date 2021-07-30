@@ -405,10 +405,11 @@ class StateManager:
 
         state = stw.state
 
-        if not state.overlay_hash:
+        overlay_hash = state.overlay_hash  # type: ignore
+        if not overlay_hash:
             return b""
 
-        return bytes.fromhex(state.overlay_hash)
+        return bytes.fromhex(overlay_hash)
 
 
 def _sort_steps_by_state_timestamp(

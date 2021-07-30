@@ -423,7 +423,7 @@ class Ubuntu(BaseRepository):
         # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=555632
 
         try:
-            process_run(apt_command + package_names, env=env)
+            process_run(apt_command + package_names, env=env, stdin=subprocess.DEVNULL)
         except subprocess.CalledProcessError as err:
             raise errors.BuildPackagesNotInstalled(packages=package_names) from err
 

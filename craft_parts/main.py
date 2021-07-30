@@ -140,6 +140,12 @@ def _action_message(action: craft_parts.Action) -> str:
             ActionType.SKIP: "Skip pull",
             ActionType.UPDATE: "Update sources for",
         },
+        Step.OVERLAY: {
+            ActionType.RUN: "Overlay",
+            ActionType.RERUN: "Re-overlay",
+            ActionType.SKIP: "Skip overlay",
+            ActionType.REAPPLY: "Reapply overlay",
+        },
         Step.BUILD: {
             ActionType.RUN: "Build",
             ActionType.RERUN: "Rebuild",
@@ -169,6 +175,7 @@ def _action_message(action: craft_parts.Action) -> str:
 def _parse_step(name: str) -> Step:
     step_map = {
         "pull": Step.PULL,
+        "overlay": Step.OVERLAY,
         "build": Step.BUILD,
         "stage": Step.STAGE,
         "prime": Step.PRIME,
@@ -269,6 +276,13 @@ def _parse_arguments() -> argparse.Namespace:
         "parts",
         nargs="*",
         help="The list of parts to pull. Default is all parts.",
+    )
+
+    overlay_parser = add_subparser("overlay", help="Process part overlay.")
+    overlay_parser.add_argument(
+        "parts",
+        nargs="*",
+        help="The list of parts to overlay. Default is all parts.",
     )
 
     build_parser = add_subparser("build", help="Build artifacts defined for a part.")

@@ -186,8 +186,8 @@ def test_sequencer_process_dependencies(mocker, new_dir):
     )
 
 
-def test_sequencer_ensure_overlay_consistency(mocker):
-    info = ProjectInfo(arch="aarch64", application_name="test")
+def test_sequencer_ensure_overlay_consistency(mocker, new_dir):
+    info = ProjectInfo(arch="aarch64", application_name="test", cache_dir=new_dir)
     p1 = Part("p1", {})
     p2 = Part("p2", {})
 
@@ -217,8 +217,8 @@ def test_sequencer_ensure_overlay_consistency(mocker):
 
 
 @pytest.mark.usefixtures("new_dir")
-def test_sequencer_ensure_overlay_consistency_no_run(mocker):
-    info = ProjectInfo(arch="aarch64", application_name="test")
+def test_sequencer_ensure_overlay_consistency_no_run(mocker, new_dir):
+    info = ProjectInfo(arch="aarch64", application_name="test", cache_dir=new_dir)
     p1 = Part("p1", {})
     p2 = Part("p2", {})
 
@@ -237,8 +237,8 @@ def test_sequencer_ensure_overlay_consistency_no_run(mocker):
 
 
 @pytest.mark.usefixtures("new_dir")
-def test_sequencer_ensure_overlay_consistency_dont_skip_last(mocker):
-    info = ProjectInfo(arch="aarch64", application_name="test")
+def test_sequencer_ensure_overlay_consistency_dont_skip_last(mocker, new_dir):
+    info = ProjectInfo(arch="aarch64", application_name="test", cache_dir=new_dir)
     p1 = Part("p1", {})
     p2 = Part("p2", {})
 
@@ -261,8 +261,8 @@ def test_sequencer_ensure_overlay_consistency_dont_skip_last(mocker):
 
 
 @pytest.mark.usefixtures("new_dir")
-def test_sequencer_ensure_overlay_consistency_rerun(mocker):
-    info = ProjectInfo(arch="aarch64", application_name="test")
+def test_sequencer_ensure_overlay_consistency_rerun(mocker, new_dir):
+    info = ProjectInfo(arch="aarch64", application_name="test", cache_dir=new_dir)
     p1 = Part("p1", {})
     p2 = Part("p2", {})
 

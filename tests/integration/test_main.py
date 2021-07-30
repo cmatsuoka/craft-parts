@@ -38,33 +38,36 @@ parts_yaml = textwrap.dedent(
 
 plan_steps = [
     "Pull foo\nPull bar\n",
+    "Overlay foo\nOverlay bar\n",
     "Build foo\nStage foo (required to build 'bar')\nBuild bar\n",
     "Stage bar\n",
     "Prime foo\nPrime bar\n",
 ]
 
-plan_result = ["".join(plan_steps[0:n]) for n in range(1, 5)]
+plan_result = ["".join(plan_steps[0:n]) for n in range(1, len(plan_steps) + 1)]
 
 
 # pylint: disable=line-too-long
 
 execute_steps = [
     "Execute: Pull foo\nExecute: Pull bar\n",
+    "Execute: Overlay foo\nExecute: Overlay bar\n",
     "Execute: Build foo\nExecute: Stage foo (required to build 'bar')\nExecute: Build bar\n",
     "Execute: Stage bar\n",
     "Execute: Prime foo\nExecute: Prime bar\n",
 ]
 
-execute_result = ["".join(execute_steps[0:n]) for n in range(1, 5)]
+execute_result = ["".join(execute_steps[0:n]) for n in range(1, len(execute_steps) + 1)]
 
 skip_steps = [
     "Skip pull foo (already ran)\nSkip pull bar (already ran)\n",
+    "Skip overlay foo (already ran)\nSkip overlay bar (already ran)\n",
     "Skip build foo (already ran)\nSkip build bar (already ran)\n",
     "Skip stage foo (already ran)\nSkip stage bar (already ran)\n",
     "Skip prime foo (already ran)\nSkip prime bar (already ran)\n",
 ]
 
-skip_result = ["".join(skip_steps[0:n]) for n in range(1, 5)]
+skip_result = ["".join(skip_steps[0:n]) for n in range(1, len(skip_steps) + 1)]
 
 
 @pytest.fixture(autouse=True)
@@ -80,7 +83,7 @@ def test_main_no_args(mocker, capfd):
 
     out, err = capfd.readouterr()
     assert err == ""
-    assert out == execute_result[3]
+    assert out == execute_result[4]
     assert Path("parts").is_dir()
     assert Path("parts/foo").is_dir()
     assert Path("parts/bar").is_dir()
@@ -160,7 +163,7 @@ def test_main_dry_run(mocker, capfd):
 
     out, err = capfd.readouterr()
     assert err == ""
-    assert out == plan_result[3]
+    assert out == plan_result[4]
     assert Path("parts").is_dir() is False
     assert Path("stage").is_dir() is False
     assert Path("prime").is_dir() is False
@@ -248,7 +251,7 @@ def test_main_alternative_work_dir(mocker, capfd):
 
     out, err = capfd.readouterr()
     assert err == ""
-    assert out == execute_result[3]
+    assert out == execute_result[4]
 
     # work dirs are in the new location
     assert Path("work_dir/parts").is_dir()
@@ -270,7 +273,7 @@ def test_main_alternative_parts_file(mocker, capfd, opt):
 
     out, err = capfd.readouterr()
     assert err == ""
-    assert out == plan_result[3]
+    assert out == plan_result[4]
 
 
 def test_main_alternative_parts_invalid_file(mocker, capfd):
@@ -298,7 +301,7 @@ def test_main_refresh(new_dir, mocker, capfd):
 
     out, err = capfd.readouterr()
     assert err == ""
-    assert out == plan_result[3]
+    assert out == plan_result[4]
 
     # check cache location
     assert Path(".cache/craft-parts/stage-packages").is_dir()
@@ -310,9 +313,10 @@ def test_main_refresh(new_dir, mocker, capfd):
     "step,result",
     [
         ("pull", execute_result[0]),
-        ("build", execute_result[1]),
-        ("stage", execute_result[2]),
-        ("prime", execute_result[3]),
+        ("overlay", execute_result[1]),
+        ("build", execute_result[2]),
+        ("stage", execute_result[3]),
+        ("prime", execute_result[4]),
     ],
 )
 def test_main_step(mocker, capfd, step, result):
@@ -331,9 +335,10 @@ def test_main_step(mocker, capfd, step, result):
     "step,result",
     [
         ("pull", plan_result[0]),
-        ("build", plan_result[1]),
-        ("stage", plan_result[2]),
-        ("prime", plan_result[3]),
+        ("overlay", plan_result[1]),
+        ("build", plan_result[2]),
+        ("stage", plan_result[3]),
+        ("prime", plan_result[4]),
     ],
 )
 def test_main_step_dry_run(mocker, capfd, step, result):
@@ -389,7 +394,7 @@ def test_main_step_dry_run_show_skip(mocker, capfd):
 
     out, err = capfd.readouterr()
     assert err == ""
-    assert out == skip_result[3]
+    assert out == skip_result[4]
 
 
 def test_main_step_specify_part(mocker, capfd):
@@ -402,7 +407,7 @@ def test_main_step_specify_part(mocker, capfd):
     assert err == ""
     assert (
         out
-        == "Execute: Pull foo\nExecute: Build foo\nExecute: Stage foo\nExecute: Prime foo\n"
+        == "Execute: Pull foo\nExecute: Overlay foo\nExecute: Build foo\nExecute: Stage foo\nExecute: Prime foo\n"
     )
 
 
@@ -416,7 +421,7 @@ def test_main_step_specify_part_dry_run(mocker, capfd):
 
     out, err = capfd.readouterr()
     assert err == ""
-    assert out == "Pull foo\nBuild foo\nStage foo\nPrime foo\n"
+    assert out == "Pull foo\nOverlay foo\nBuild foo\nStage foo\nPrime foo\n"
 
     assert Path("parts").is_dir() is False
 
@@ -425,12 +430,14 @@ def test_main_step_specify_part_dry_run(mocker, capfd):
     "step,result",
     [
         ("pull", plan_result[0]),
-        ("build", plan_result[1]),
+        ("build", plan_result[2]),
         (
             "stage",
             (
                 "Pull foo\n"
                 "Pull bar\n"
+                "Overlay foo\n"
+                "Overlay bar\n"
                 "Build foo\n"
                 "Stage foo (required to build 'bar')\n"
                 "Build bar\n"
@@ -438,7 +445,7 @@ def test_main_step_specify_part_dry_run(mocker, capfd):
                 "Stage bar\n"
             ),
         ),
-        ("prime", plan_result[3]),
+        ("prime", plan_result[4]),
     ],
 )
 def test_main_step_specify_multiple_parts(mocker, capfd, step, result):

@@ -49,6 +49,7 @@ class TestOverlayLayerOrder:
         return craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -79,7 +80,7 @@ class TestOverlayLayerOrder:
             Action("p3", Step.PRIME),
         ]
 
-    def test_layer_parameter_change(self, lifecycle, fake_call):
+    def test_layer_parameter_change(self, lifecycle, fake_call, new_dir):
         actions = lifecycle.plan(Step.OVERLAY, ["p3"])
         assert actions == [
             Action("p3", Step.PULL),
@@ -119,6 +120,7 @@ class TestOverlayLayerOrder:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -133,9 +135,8 @@ class TestOverlayLayerOrder:
         ]
 
 
-@pytest.mark.usefixtures("new_dir")
 class TestOverlayStageDependency:
-    def test_part_overlay_stage_dependency_top(self, fake_call):
+    def test_part_overlay_stage_dependency_top(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -152,6 +153,7 @@ class TestOverlayStageDependency:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -170,7 +172,7 @@ class TestOverlayStageDependency:
             # fmt: on
         ]
 
-    def test_part_overlay_stage_dependency_middle(self, fake_call):
+    def test_part_overlay_stage_dependency_middle(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -187,6 +189,7 @@ class TestOverlayStageDependency:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -205,7 +208,7 @@ class TestOverlayStageDependency:
             # fmt: on
         ]
 
-    def test_part_overlay_stage_dependency_bottom(self, fake_call):
+    def test_part_overlay_stage_dependency_bottom(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -222,6 +225,7 @@ class TestOverlayStageDependency:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -241,9 +245,8 @@ class TestOverlayStageDependency:
         ]
 
 
-@pytest.mark.usefixtures("new_dir")
 class TestOverlayInvalidationFlow:
-    def test_pull_dirty_single_part(self):
+    def test_pull_dirty_single_part(self, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -252,7 +255,9 @@ class TestOverlayInvalidationFlow:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts, application_name="test_layers", cache_dir=new_dir
+        )
 
         actions = lf.plan(Step.PRIME)
         assert actions == [
@@ -279,6 +284,7 @@ class TestOverlayInvalidationFlow:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -295,7 +301,7 @@ class TestOverlayInvalidationFlow:
         ]
 
     # invalidation example 2
-    def test_pull_dirty_multipart(self, fake_call):
+    def test_pull_dirty_multipart(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -313,6 +319,7 @@ class TestOverlayInvalidationFlow:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -364,6 +371,7 @@ class TestOverlayInvalidationFlow:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -382,7 +390,7 @@ class TestOverlayInvalidationFlow:
             Action("B", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
             Action("B", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
             Action("B", Step.STAGE, action_type=ActionType.RUN, reason="required to build 'A'"),
-            Action("A", Step.BUILD, action_type=ActionType.RERUN, reason="part 'B' stage changed"),
+            Action("A", Step.BUILD, action_type=ActionType.RERUN, reason="stage for part 'B' changed"),
             Action("C", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
             Action("B", Step.STAGE, action_type=ActionType.SKIP, reason="already ran"),
             Action("A", Step.STAGE),
@@ -393,7 +401,7 @@ class TestOverlayInvalidationFlow:
             # fmt: on
         ]
 
-    def test_overlay_clean(self, fake_call):
+    def test_overlay_clean(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -410,6 +418,7 @@ class TestOverlayInvalidationFlow:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -453,6 +462,7 @@ class TestOverlayInvalidationFlow:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -478,7 +488,7 @@ class TestOverlayInvalidationFlow:
             # fmt: on
         ]
 
-    def test_overlay_invalidation_facundos_scenario(self, fake_call):
+    def test_overlay_invalidation_facundos_scenario(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -494,6 +504,7 @@ class TestOverlayInvalidationFlow:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -531,6 +542,7 @@ class TestOverlayInvalidationFlow:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -552,9 +564,8 @@ class TestOverlayInvalidationFlow:
         ]
 
 
-@pytest.mark.usefixtures("new_dir")
 class TestOverlaySpecScenarios:
-    def test_overlay_spec_scenario_1(self):
+    def test_overlay_spec_scenario_1(self, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -566,7 +577,9 @@ class TestOverlaySpecScenarios:
             """
         )
         parts = yaml.safe_load(parts_yaml)
-        lf = craft_parts.LifecycleManager(parts, application_name="test_layers")
+        lf = craft_parts.LifecycleManager(
+            parts, application_name="test_layers", cache_dir=new_dir
+        )
 
         actions = _filter_skip(lf.plan(Step.STAGE))
         assert actions == [
@@ -580,7 +593,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_2_stage_all(self, fake_call):
+    def test_overlay_spec_scenario_2_stage_all(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -596,6 +609,7 @@ class TestOverlaySpecScenarios:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -612,7 +626,7 @@ class TestOverlaySpecScenarios:
             Action("B", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_2_stage_a(self, fake_call):
+    def test_overlay_spec_scenario_2_stage_a(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -628,6 +642,7 @@ class TestOverlaySpecScenarios:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -642,7 +657,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_3_stage_a(self, fake_call):
+    def test_overlay_spec_scenario_3_stage_a(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -658,6 +673,7 @@ class TestOverlaySpecScenarios:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -674,7 +690,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_3_stage_b(self, fake_call):
+    def test_overlay_spec_scenario_3_stage_b(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -690,6 +706,7 @@ class TestOverlaySpecScenarios:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -704,7 +721,7 @@ class TestOverlaySpecScenarios:
             Action("B", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_4_stage_a(self, fake_call):
+    def test_overlay_spec_scenario_4_stage_a(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -719,6 +736,7 @@ class TestOverlaySpecScenarios:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
@@ -731,7 +749,7 @@ class TestOverlaySpecScenarios:
             Action("A", Step.STAGE),
         ]
 
-    def test_overlay_spec_scenario_4_stage_b(self, fake_call):
+    def test_overlay_spec_scenario_4_stage_b(self, fake_call, new_dir):
         parts_yaml = textwrap.dedent(
             """
             parts:
@@ -746,6 +764,7 @@ class TestOverlaySpecScenarios:
         lf = craft_parts.LifecycleManager(
             parts,
             application_name="test_layers",
+            cache_dir=new_dir,
             base_layer_dir=Path("/base"),
             base_layer_hash=b"hash",
         )
