@@ -52,7 +52,7 @@ class TestPartSpecs:
             "stage": ["-usr/docs"],
             "prime": ["*"],
             "override-pull": "override-pull",
-            "override-overlay": "override-overlay",
+            "overlay-script": "overlay-script",
             "override-build": "override-build",
             "override-stage": "override-stage",
             "override-prime": "override-prime",
@@ -240,7 +240,7 @@ class TestPartData:
             "foo",
             {
                 "overlay-packages": pkgs,
-                "override-overlay": script,
+                "overlay-script": script,
             },
         )
         assert p.has_overlay == result
@@ -380,7 +380,7 @@ class TestPartHelpers:
         p1 = Part("foo", {"after": ["bar", "baz"]})
         p2 = Part("bar", {"after": ["qux"]})
         p3 = Part("baz", {})
-        p4 = Part("qux", {"override-overlay": "echo"})
+        p4 = Part("qux", {"overlay-script": "echo"})
         p5 = Part("foobar", {"after": ["baz"]})
 
         part_list = [p1, p2, p3, p4, p5]

@@ -110,7 +110,7 @@ class TestOverlayLayerOrder:
                 plugin: nil
               p2:
                 plugin: nil
-                override-overlay: echo
+                overlay-script: echo
               p3:
                 plugin: nil
             """
@@ -146,7 +146,7 @@ class TestOverlayStageDependency:
                 plugin: nil
               p3:
                 plugin: nil
-                override-overlay: echo overlay
+                overlay-script: echo overlay
             """
         )
         parts = yaml.safe_load(parts_yaml)
@@ -180,7 +180,7 @@ class TestOverlayStageDependency:
                 plugin: nil
               p2:
                 plugin: nil
-                override-overlay: echo overlay
+                overlay-script: echo overlay
               p3:
                 plugin: nil
             """
@@ -214,7 +214,7 @@ class TestOverlayStageDependency:
             parts:
               p1:
                 plugin: nil
-                override-overlay: echo overlay
+                overlay-script: echo overlay
               p2:
                 plugin: nil
               p3:
@@ -310,7 +310,7 @@ class TestOverlayInvalidationFlow:
                 after: [B]
               B:
                 plugin: nil
-                override-overlay: echo overlay
+                overlay-script: echo overlay
               C:
                 plugin: nil
             """
@@ -362,7 +362,7 @@ class TestOverlayInvalidationFlow:
               B:
                 plugin: nil
                 overlay-packages: [hello]
-                override-overlay: echo overlay
+                overlay-script: echo overlay
               C:
                 plugin: nil
             """
@@ -409,7 +409,7 @@ class TestOverlayInvalidationFlow:
                 plugin: nil
               B:
                 plugin: nil
-                override-overlay: echo overlay
+                overlay-script: echo overlay
               C:
                 plugin: nil
             """
@@ -453,7 +453,7 @@ class TestOverlayInvalidationFlow:
                 plugin: nil
               B:
                 plugin: nil
-                override-overlay: echo changed
+                overlay-script: echo changed
               C:
                 plugin: nil
             """
@@ -474,7 +474,7 @@ class TestOverlayInvalidationFlow:
             Action("B", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
             Action("C", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
             Action("A", Step.OVERLAY, action_type=ActionType.SKIP, reason="already ran"),
-            Action("B", Step.OVERLAY, action_type=ActionType.RERUN, reason="'override-overlay' property changed"),
+            Action("B", Step.OVERLAY, action_type=ActionType.RERUN, reason="'overlay-script' property changed"),
             Action("C", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
             Action("A", Step.BUILD, action_type=ActionType.SKIP, reason="already ran"),
             Action("B", Step.BUILD, action_type=ActionType.RERUN, reason="overlay changed"),
@@ -494,10 +494,10 @@ class TestOverlayInvalidationFlow:
             parts:
               A:
                 plugin: nil
-                override-overlay: echo "overlay A"
+                overlay-script: echo "overlay A"
               B:
                 plugin: nil
-                override-overlay: echo "overlay B"
+                overlay-script: echo "overlay B"
             """
         )
         parts = yaml.safe_load(parts_yaml)
@@ -532,10 +532,10 @@ class TestOverlayInvalidationFlow:
             parts:
               A:
                 plugin: nil
-                override-overlay: echo "overlay A changed"
+                overlay-script: echo "overlay A changed"
               B:
                 plugin: nil
-                override-overlay: echo "overlay B"
+                overlay-script: echo "overlay B"
             """
         )
         parts = yaml.safe_load(parts_yaml)
@@ -552,7 +552,7 @@ class TestOverlayInvalidationFlow:
             # fmt: off
             Action("A", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
             Action("B", Step.PULL, action_type=ActionType.SKIP, reason="already ran"),
-            Action("A", Step.OVERLAY, action_type=ActionType.RERUN, reason="'override-overlay' property changed"),
+            Action("A", Step.OVERLAY, action_type=ActionType.RERUN, reason="'overlay-script' property changed"),
             Action("B", Step.OVERLAY, action_type=ActionType.REAPPLY, reason="previous layer changed"),
             Action("A", Step.BUILD, action_type=ActionType.RERUN, reason="overlay changed"),
             Action("B", Step.BUILD, action_type=ActionType.RERUN, reason="overlay changed"),
@@ -599,10 +599,10 @@ class TestOverlaySpecScenarios:
             parts:
               A:
                 plugin: nil
-                override-overlay: echo A
+                overlay-script: echo A
               B:
                 plugin: nil
-                override-overlay: echo B
+                overlay-script: echo B
             """
         )
         parts = yaml.safe_load(parts_yaml)
@@ -632,10 +632,10 @@ class TestOverlaySpecScenarios:
             parts:
               A:
                 plugin: nil
-                override-overlay: echo A
+                overlay-script: echo A
               B:
                 plugin: nil
-                override-overlay: echo B
+                overlay-script: echo B
             """
         )
         parts = yaml.safe_load(parts_yaml)
@@ -666,7 +666,7 @@ class TestOverlaySpecScenarios:
                 after: [B]
               B:
                 plugin: nil
-                override-overlay: echo B
+                overlay-script: echo B
             """
         )
         parts = yaml.safe_load(parts_yaml)
@@ -699,7 +699,7 @@ class TestOverlaySpecScenarios:
                 after: [B]
               B:
                 plugin: nil
-                override-overlay: echo B
+                overlay-script: echo B
             """
         )
         parts = yaml.safe_load(parts_yaml)
@@ -729,7 +729,7 @@ class TestOverlaySpecScenarios:
                 plugin: nil
               B:
                 plugin: nil
-                override-overlay: echo B
+                overlay-script: echo B
             """
         )
         parts = yaml.safe_load(parts_yaml)
@@ -757,7 +757,7 @@ class TestOverlaySpecScenarios:
                 plugin: nil
               B:
                 plugin: nil
-                override-overlay: echo B
+                overlay-script: echo B
             """
         )
         parts = yaml.safe_load(parts_yaml)

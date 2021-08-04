@@ -52,7 +52,7 @@ def test_ctl_client_steps(new_dir, capfd, mocker):
             override-pull: |
               echo "pull step"
               partsctl pull
-            override-overlay: |
+            overlay-script: |
               echo "overlay step"
               partsctl overlay
             override-build: |
@@ -131,7 +131,7 @@ def test_ctl_client_step_argments(new_dir, step):
           foo:
             plugin: nil
             override-pull: partsctl pull argument
-            override-overlay: partsctl overlay argument
+            overlay-script: partsctl overlay argument
             override-build: partsctl build argument
             override-stage: partsctl stage argument
             override-prime: partsctl prime argument

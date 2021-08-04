@@ -51,7 +51,7 @@ class OverlayState(StepState):
         """
         return {
             "filesets": part_properties.get("filesets", {}) or {},
-            "override-overlay": part_properties.get("override-overlay"),
+            "overlay-script": part_properties.get("overlay-script"),
             "overlay": part_properties.get("overlay", ["*"]) or ["*"],
         }
 

@@ -52,7 +52,7 @@ class PartSpec(BaseModel):
     stage_files: List[str] = Field(["*"], alias="stage")
     prime_files: List[str] = Field(["*"], alias="prime")
     override_pull: Optional[str] = None
-    override_overlay: Optional[str] = None
+    overlay_script: Optional[str] = None
     override_build: Optional[str] = None
     override_stage: Optional[str] = None
     override_prime: Optional[str] = None
@@ -115,7 +115,7 @@ class PartSpec(BaseModel):
         if step == Step.PULL:
             return self.override_pull
         if step == Step.OVERLAY:
-            return self.override_overlay
+            return self.overlay_script
         if step == Step.BUILD:
             return self.override_build
         if step == Step.STAGE:
@@ -273,9 +273,7 @@ class Part:
     @property
     def has_overlay(self) -> bool:
         """Return whether this part declares overlay content."""
-        return (
-            self.spec.overlay_packages != [] or self.spec.override_overlay is not None
-        )
+        return self.spec.overlay_packages != [] or self.spec.overlay_script is not None
 
 
 def part_by_name(name: str, part_list: List[Part]) -> Part:
