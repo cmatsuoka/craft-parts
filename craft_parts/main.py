@@ -80,12 +80,19 @@ def _process_parts(options: argparse.Namespace) -> None:
     if not cache_dir:
         cache_dir = BaseDirectory.save_cache_path("craft-parts")
 
+    if options.overlay_base:
+        base_layer_hash = options.overlay_base.encode()
+    else:
+        base_layer_hash = b""
+
     lcm = craft_parts.LifecycleManager(
         part_data,
         application_name=options.application_name,
         work_dir=options.work_dir,
         cache_dir=cache_dir,
         base=options.base,
+        base_layer_dir=options.overlay_base,
+        base_layer_hash=base_layer_hash,
     )
 
     command = options.command if options.command else "prime"
@@ -232,6 +239,11 @@ def _parse_arguments() -> argparse.Namespace:
         metavar="name",
         default="craft_parts",
         help="Set the application name. Default is 'craft_parts'.",
+    )
+    parser.add_argument(
+        "--overlay-base",
+        metavar="dirname",
+        help="The overlay base directory",
     )
     parser.add_argument(
         "--base",
