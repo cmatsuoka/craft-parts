@@ -68,6 +68,9 @@ def test_ctl_client_steps(new_dir, capfd, mocker):
     )
     parts = yaml.safe_load(parts_yaml)
 
+    mock_mount = mocker.patch("craft_parts.utils.os_utils.mount")
+    mock_umount = mocker.patch("craft_parts.utils.os_utils.umount")
+
     Path("foo").mkdir()
     Path("foo/foo.txt").touch()
 
@@ -95,7 +98,7 @@ def test_ctl_client_steps(new_dir, capfd, mocker):
         assert Path("stage/foo.txt").exists() is False
         assert Path("prime/foo.txt").exists() is False
 
-        # TODO: fix overlay file test
+        # TODO: fix overlay action execution test
 
         ctx.execute(actions[1])
         captured = capfd.readouterr()
@@ -103,6 +106,18 @@ def test_ctl_client_steps(new_dir, capfd, mocker):
         assert Path("parts/foo/install/foo.txt").exists() is False
         assert Path("stage/foo.txt").exists() is False
         assert Path("prime/foo.txt").exists() is False
+
+        mock_mount.assert_called_with(
+            "overlay",
+            str(new_dir / "overlay/overlay"),
+            "-toverlay",
+            "-olowerdir="
+            + str(new_dir / "overlay/packages")
+            + ":/base,upperdir="
+            + str(new_dir / "parts/foo/layer,workdir=")
+            + str(new_dir / "overlay/work"),
+        )
+        mock_umount.assert_called_with(str(new_dir / "overlay/overlay"))
 
         ctx.execute(actions[2])
         captured = capfd.readouterr()
@@ -124,7 +139,7 @@ def test_ctl_client_steps(new_dir, capfd, mocker):
 
 
 @pytest.mark.parametrize("step", list(Step))
-def test_ctl_client_step_argments(new_dir, step):
+def test_ctl_client_step_argments(new_dir, mocker, step):
     parts_yaml = textwrap.dedent(
         """\
         parts:
@@ -138,6 +153,9 @@ def test_ctl_client_step_argments(new_dir, step):
         """
     )
     parts = yaml.safe_load(parts_yaml)
+
+    mock_mount = mocker.patch("craft_parts.utils.os_utils.mount")
+    mock_umount = mocker.patch("craft_parts.utils.os_utils.umount")
 
     lf = craft_parts.LifecycleManager(
         parts,
@@ -153,6 +171,19 @@ def test_ctl_client_step_argments(new_dir, step):
     assert raised.value.message == (
         "invalid arguments to function {!r}".format(step.name.lower())
     )
+
+    if step == Step.OVERLAY:
+        mock_mount.assert_called_with(
+            "overlay",
+            str(new_dir / "overlay/overlay"),
+            "-toverlay",
+            "-olowerdir="
+            + str(new_dir / "overlay/packages")
+            + ":/base,upperdir="
+            + str(new_dir / "parts/foo/layer,workdir=")
+            + str(new_dir / "overlay/work"),
+        )
+        mock_umount.assert_called_with(str(new_dir / "overlay/overlay"))
 
 
 def test_ctl_client_set(new_dir):

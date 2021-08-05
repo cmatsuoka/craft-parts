@@ -27,6 +27,7 @@ from craft_parts.executor import part_handler
 from craft_parts.executor.part_handler import PartHandler
 from craft_parts.executor.step_handler import StepContents
 from craft_parts.infos import PartInfo, ProjectInfo, StepInfo
+from craft_parts.overlays import OverlayManager
 from craft_parts.parts import Part
 from craft_parts.state_manager import states
 from craft_parts.steps import Step
@@ -50,11 +51,15 @@ class TestPartHandling:
             },
         )
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
+        ovmgr = OverlayManager(
+            project_info=info, part_list=[self._part], base_layer_dir=None
+        )
         self._part_info = PartInfo(info, self._part)
         self._handler = PartHandler(
             self._part,
             part_info=self._part_info,
             part_list=[self._part],
+            overlay_manager=ovmgr,
         )
         # pylint: enable=attribute-defined-outside-init
 
@@ -147,7 +152,12 @@ class TestPartHandling:
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
         step_info = StepInfo(part_info, step=step)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(
+            project_info=info, part_list=[self._part], base_layer_dir=None
+        )
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         handler._run_step(
             step_info=step_info, scriptlet_name=scriptlet, work_dir=Path()
@@ -175,11 +185,15 @@ class TestPartUpdateHandler:
         Path("subdir/foo.txt").write_text("content")
 
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
+        ovmgr = OverlayManager(
+            project_info=info, part_list=[self._part], base_layer_dir=None
+        )
         self._part_info = PartInfo(info, self._part)
         self._handler = PartHandler(
             self._part,
             part_info=self._part_info,
             part_list=[self._part],
+            overlay_manager=ovmgr,
         )
         # pylint: enable=attribute-defined-outside-init
 
@@ -201,7 +215,12 @@ class TestPartUpdateHandler:
         p1 = Part("p1", {"plugin": "nil"})
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, part=p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(
+            project_info=info, part_list=[self._part], base_layer_dir=None
+        )
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         assert handler._source_handler is None
 
@@ -216,7 +235,12 @@ class TestPartUpdateHandler:
         p1 = Part("p1", {"plugin": "nil", "override-pull": "echo hello"})
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(
+            project_info=info, part_list=[self._part], base_layer_dir=None
+        )
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         handler.run_action(Action("foo", Step.PULL, ActionType.UPDATE))
 
@@ -254,11 +278,15 @@ class TestPartCleanHandler:
         Path("subdir/foo.txt").write_text("content")
 
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
+        ovmgr = OverlayManager(
+            project_info=info, part_list=[self._part], base_layer_dir=None
+        )
         self._part_info = PartInfo(info, self._part)
         self._handler = PartHandler(
             self._part,
             part_info=self._part_info,
             part_list=[self._part],
+            overlay_manager=ovmgr,
         )
         # pylint: enable=attribute-defined-outside-init
 
@@ -296,7 +324,10 @@ class TestRerunStep:
         p1 = Part("p1", {"plugin": "nil"})
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         mock_clean = mocker.patch(
             "craft_parts.executor.part_handler.PartHandler.clean_step"
@@ -326,7 +357,10 @@ class TestPackages:
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
         step_info = StepInfo(part_info, step=Step.PULL)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         result = handler._fetch_stage_packages(step_info=step_info)
         assert result == ["pkg1", "pkg2"]
@@ -336,7 +370,10 @@ class TestPackages:
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
         step_info = StepInfo(part_info, step=Step.PULL)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         result = handler._fetch_stage_packages(step_info=step_info)
         assert result is None
@@ -351,7 +388,10 @@ class TestPackages:
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
         step_info = StepInfo(part_info, step=Step.PULL)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         with pytest.raises(errors.StagePackageNotFound) as raised:
             handler._fetch_stage_packages(step_info=step_info)
@@ -366,7 +406,10 @@ class TestPackages:
         p1 = Part("p1", {"plugin": "nil", "stage-snaps": ["word-salad"]})
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         result = handler._fetch_stage_snaps()
         assert result == ["word-salad"]
@@ -379,7 +422,10 @@ class TestPackages:
         p1 = Part("p1", {"plugin": "nil"})
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         result = handler._fetch_stage_snaps()
         assert result is None
@@ -395,7 +441,10 @@ class TestPackages:
         p1 = Part("foo", {"plugin": "nil", "stage-packages": ["pkg1"]})
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         state = handler._run_pull(StepInfo(part_info, Step.PULL))
         getpkg.assert_called_once_with(
@@ -422,7 +471,10 @@ class TestPackages:
         p1 = Part("p1", {"plugin": "nil", "stage-snaps": ["snap1"]})
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         Path("parts/p1/stage_snaps").mkdir(parents=True)
         Path("parts/p1/install").mkdir(parents=True)
@@ -441,14 +493,20 @@ class TestPackages:
         )
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
         assert sorted(handler.build_packages) == ["gcc", "make", "pkg1", "tar"]
 
     def test_get_build_snaps(self, new_dir):
         p1 = Part("p1", {"plugin": "nil", "build-snaps": ["word-salad"]})
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
         assert handler.build_snaps == ["word-salad"]
 
 
@@ -495,12 +553,19 @@ class TestHelpers:
         Path("subdir2/bar.txt").write_text("other content")
 
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
 
         handler1 = PartHandler(
-            p1, part_info=PartInfo(info, part=p1), part_list=[p1, p2]
+            p1,
+            part_info=PartInfo(info, part=p1),
+            part_list=[p1, p2],
+            overlay_manager=ovmgr,
         )
         handler2 = PartHandler(
-            p2, part_info=PartInfo(info, part=p2), part_list=[p1, p2]
+            p2,
+            part_info=PartInfo(info, part=p2),
+            part_list=[p1, p2],
+            overlay_manager=ovmgr,
         )
 
         for step in [Step.PULL, Step.OVERLAY, Step.BUILD, Step.STAGE]:
@@ -534,7 +599,10 @@ class TestHelpers:
         p1 = Part("p1", {"plugin": "dump", "source": "subdir"})
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, part=p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         handler.run_action(Action("p1", Step.PULL))
         handler.run_action(Action("p1", Step.BUILD))
@@ -554,7 +622,10 @@ class TestHelpers:
         p1 = Part("p1", {"plugin": "dump", "source": "subdir"})
         info = ProjectInfo(application_name="test", cache_dir=new_dir)
         part_info = PartInfo(info, part=p1)
-        handler = PartHandler(p1, part_info=part_info, part_list=[p1])
+        ovmgr = OverlayManager(project_info=info, part_list=[p1], base_layer_dir=None)
+        handler = PartHandler(
+            p1, part_info=part_info, part_list=[p1], overlay_manager=ovmgr
+        )
 
         handler.run_action(Action("p1", Step.PULL))
         handler.run_action(Action("p1", Step.BUILD))

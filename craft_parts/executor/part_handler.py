@@ -56,8 +56,8 @@ class PartHandler:
         *,
         part_info: PartInfo,
         part_list: List[Part],
+        overlay_manager: OverlayManager,
         ignore_patterns: Optional[List[str]] = None,
-        overlay_manager: Optional[OverlayManager] = None,
         base_layer_hash: bytes = b"",
     ):
         self._part = part
@@ -148,11 +148,14 @@ class PartHandler:
     def _run_overlay(self, step_info: StepInfo) -> StepState:
         self._make_dirs()
 
-        contents = self._run_step(
-            step_info=step_info,
-            scriptlet_name="override-overlay",
-            work_dir=self._part.stage_dir,
-        )
+        with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
+            self._install_overlay_packages(ctx)
+
+            contents = self._run_step(
+                step_info=step_info,
+                scriptlet_name="overlay-script",
+                work_dir=self._part.part_layer_dir,
+            )
 
         layer_hash = self._compute_layer_hash()
         overlays.save_layer_hash(self._part, hash_bytes=layer_hash)
@@ -179,7 +182,6 @@ class PartHandler:
         _remove(self._part.part_build_dir)
         self._unpack_stage_packages()
         self._unpack_stage_snaps()
-        self._install_overlay_packages()
 
         # Copy source from the part source dir to the part build dir
         shutil.copytree(
@@ -522,13 +524,12 @@ class PartHandler:
                 part_name=self._part.name, package_name=err.package_name
             )
 
-    def _install_overlay_packages(self) -> None:
+    def _install_overlay_packages(self, ctx: LayerMounter) -> None:
         overlay_packages = self._part.spec.overlay_packages
-        if not overlay_packages or not self._overlay_manager:
+        if not overlay_packages:
             return
 
-        with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
-            ctx.install_packages(overlay_packages)
+        ctx.install_packages(overlay_packages)
 
     def _unpack_stage_packages(self):
         packages.Repository.unpack_stage_packages(
