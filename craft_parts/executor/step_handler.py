@@ -21,6 +21,7 @@ import functools
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -107,7 +108,10 @@ class StepHandler:
         return StepContents()
 
     def _builtin_overlay(self) -> StepContents:
-        _ = self
+        overlay_fileset = Fileset(self._part.spec.overlay_files, name="overlay")
+        destdir = self._part.part_layer_dir
+        files, dirs = filesets.migratable_filesets(overlay_fileset, str(destdir))
+        _apply_file_filter(filter_files=files, filter_dirs=dirs, destdir=destdir)
         return StepContents()
 
     def _builtin_build(self) -> StepContents:
@@ -350,6 +354,38 @@ def _migrate_files(
         file_utils.link_or_copy(src, dst, follow_symlinks=follow_symlinks)
 
         fixup_func(dst)
+
+
+def _apply_file_filter(
+    *, filter_files: Set[str], filter_dirs: Set[str], destdir: Path
+) -> None:
+    for (root, directories, files) in os.walk(destdir, topdown=True):
+        for file_name in files:
+            path = Path(root, file_name)
+            relpath = path.relative_to(destdir)
+            if str(relpath) not in filter_files:
+                logger.debug("deleted file: %s", relpath)
+                relpath.unlink()
+
+        for directory in directories:
+            path = Path(root, directory)
+            relpath = path.relative_to(destdir)
+            if path.is_symlink():
+                if str(relpath) not in filter_files:
+                    logger.debug("deleted symlink: %s", relpath)
+                    print("=== unlink", relpath)
+                    relpath.unlink()
+            elif str(relpath) not in filter_dirs:
+                logger.debug("deleted dir: %s", relpath)
+                # Don't descend into this directory-- we'll just delete it
+                # entirely.
+                directories.remove(directory)
+                if path.is_dir():
+                    shutil.rmtree(str(path))
+                    print("=== rmtree", relpath)
+                else:
+                    relpath.unlink()
+                    print("=== unlink", relpath)
 
 
 def _check_conflicts(

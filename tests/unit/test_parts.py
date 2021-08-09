@@ -49,6 +49,7 @@ class TestPartSpecs:
             "build-environment": [{"ENV1": "on"}, {"ENV2": "off"}],
             "build-attributes": ["attr1", "attr2"],
             "organize": {"src1": "dest1", "src2": "dest2"},
+            "overlay": ["etc/passwd"],
             "stage": ["-usr/docs"],
             "prime": ["*"],
             "override-pull": "override-pull",
@@ -227,20 +228,21 @@ class TestPartData:
         assert p.spec.get_scriptlet(step) is None
 
     @pytest.mark.parametrize(
-        "pkgs,script,result",
+        "pkgs,script,files,result",
         [
-            ([], None, False),
-            (["pkg"], None, True),
-            ([], None, False),
-            ([], "echo", True),
+            ([], None, ["*"], False),
+            ([], None, [], True),
+            (["pkg"], None, ["*"], True),
+            ([], "echo", ["*"], True),
         ],
     )
-    def test_part_has_overlay(self, pkgs, script, result):
+    def test_part_has_overlay(self, pkgs, script, files, result):
         p = Part(
             "foo",
             {
                 "overlay-packages": pkgs,
                 "overlay-script": script,
+                "overlay": files,
             },
         )
         assert p.has_overlay == result

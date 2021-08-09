@@ -49,6 +49,7 @@ class PartSpec(BaseModel):
     build_environment: List[Dict[str, str]] = []
     build_attributes: List[str] = []
     organize_files: Dict[str, str] = Field({}, alias="organize")
+    overlay_files: List[str] = Field(["*"], alias="overlay")
     stage_files: List[str] = Field(["*"], alias="stage")
     prime_files: List[str] = Field(["*"], alias="prime")
     override_pull: Optional[str] = None
@@ -273,7 +274,11 @@ class Part:
     @property
     def has_overlay(self) -> bool:
         """Return whether this part declares overlay content."""
-        return self.spec.overlay_packages != [] or self.spec.overlay_script is not None
+        return (
+            self.spec.overlay_packages != []
+            or self.spec.overlay_script is not None
+            or self.spec.overlay_files != ["*"]
+        )
 
 
 def part_by_name(name: str, part_list: List[Part]) -> Part:
