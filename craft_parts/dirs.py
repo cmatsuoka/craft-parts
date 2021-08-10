@@ -39,7 +39,7 @@ class ProjectDirs:
     @property
     def overlay_dir(self) -> Path:
         """Return the directory containing work subdirectories for overlays."""
-        return self._work_dir / "overlays"
+        return self._work_dir / "overlay"
 
     @property
     def overlay_mount_dir(self) -> Path:

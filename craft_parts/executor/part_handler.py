@@ -157,6 +157,14 @@ class PartHandler:
                 work_dir=self._part.part_layer_dir,
             )
 
+        # apply overlay filter
+        overlay_fileset = filesets.Fileset(
+            self._part.spec.overlay_files, name="overlay"
+        )
+        destdir = self._part.part_layer_dir
+        files, dirs = filesets.migratable_filesets(overlay_fileset, str(destdir))
+        _apply_file_filter(filter_files=files, filter_dirs=dirs, destdir=destdir)
+
         layer_hash = self._compute_layer_hash()
         overlays.save_layer_hash(self._part, hash_bytes=layer_hash)
 
@@ -435,9 +443,12 @@ class PartHandler:
     def _migrate_overlay(self, srcdir: Path, destdir: Path) -> State:
         """Migrate overlay files to prime and create state."""
         overlay_fileset = filesets.Fileset(["*"])
-        files, dirs = filesets.migratable_filesets(overlay_fileset, str(srcdir))
+        last_part = self._part_list[-1]
 
-        with LayerMounter(self._overlay_manager, top_part=self._part, empty_base=True):
+        with LayerMounter(
+            self._overlay_manager, top_part=last_part, pkg_cache=False, empty_base=True
+        ):
+            files, dirs = filesets.migratable_filesets(overlay_fileset, str(srcdir))
             migrate_files(
                 files=files, dirs=dirs, srcdir=str(srcdir), destdir=str(destdir)
             )
@@ -681,6 +692,35 @@ def _clean_migrated_files(files: Set[str], dirs: Set[str], directory: Path) -> N
                 "Skipping...",
                 each_dir,
             )
+
+
+def _apply_file_filter(
+    *, filter_files: Set[str], filter_dirs: Set[str], destdir: Path
+) -> None:
+    for (root, directories, files) in os.walk(destdir, topdown=True):
+        for file_name in files:
+            path = Path(root, file_name)
+            relpath = path.relative_to(destdir)
+            if str(relpath) not in filter_files:
+                logger.debug("delete file: %s", relpath)
+                path.unlink()
+
+        for directory in directories:
+            path = Path(root, directory)
+            relpath = path.relative_to(destdir)
+            if path.is_symlink():
+                if str(relpath) not in filter_files:
+                    logger.debug("delete symlink: %s", relpath)
+                    relpath.unlink()
+            elif str(relpath) not in filter_dirs:
+                logger.debug("delete dir: %s", relpath)
+                # Don't descend into this directory-- we'll just delete it
+                # entirely.
+                directories.remove(directory)
+                if path.is_dir():
+                    shutil.rmtree(str(path))
+                else:
+                    path.unlink()
 
 
 def _get_build_packages(*, part: Part, plugin: Plugin) -> List[str]:

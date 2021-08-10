@@ -204,17 +204,22 @@ class LayerMounter:
     """Mount and umount the overlay layer stack."""
 
     def __init__(
-        self, overlay_manager: OverlayManager, top_part: Part, empty_base: bool = False
+        self,
+        overlay_manager: OverlayManager,
+        top_part: Part,
+        pkg_cache: bool = True,
+        empty_base: bool = False,
     ):
         self._overlay_manager = overlay_manager
         self._overlay_manager.mkdirs()
         self._top_part = top_part
+        self._pkg_cache = pkg_cache
         self._empty_base = empty_base
         self._pid = os.getpid()
 
     def __enter__(self):
         self._overlay_manager.mount_layer(
-            self._top_part, pkg_cache=True, empty_base=self._empty_base
+            self._top_part, pkg_cache=self._pkg_cache, empty_base=self._empty_base
         )
         return self
 

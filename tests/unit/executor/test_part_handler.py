@@ -633,3 +633,77 @@ class TestHelpers:
 
         # this shouldn't raise an exception
         part_handler._clean_migrated_files({"foo.txt"}, {"bar"}, Path("stage"))
+
+
+@pytest.mark.usefixtures("new_dir")
+class TestFilesetFilter:
+    """Check different fileset filtering scenarios."""
+
+    @pytest.fixture(autouse=True)
+    def setup_method_fixture(self, new_dir):
+        # pylint: disable=attribute-defined-outside-init
+        self._file1 = Path("file1")
+        self._dir1 = Path("dir1")
+        self._file2 = Path("dir1/file2")
+        self._link1 = Path("dir2")
+
+        self._file1.touch()
+        self._dir1.mkdir()
+        self._file2.touch()
+        self._link1.symlink_to(self._dir1)
+        # pylint: enable=attribute-defined-outside-init
+
+    def test_apply_file_filter(self):
+        assert self._file1.is_file()
+        assert self._file2.is_file()
+        assert self._link1.is_symlink()
+
+        part_handler._apply_file_filter(
+            filter_files={"file1", "dir1/file2"}, filter_dirs={"dir1"}, destdir=Path()
+        )
+
+        assert self._file1.is_file()
+        assert self._file2.is_file()
+        assert self._link1.exists() is False
+
+    def test_apply_file_filter_empty(self):
+        assert self._file1.is_file()
+        assert self._file2.is_file()
+        assert self._link1.is_symlink()
+
+        part_handler._apply_file_filter(
+            filter_files={"dir1/file2", "dir2", "file1"},
+            filter_dirs={".", "dir1"},
+            destdir=Path(),
+        )
+
+        assert self._file1.is_file()
+        assert self._file2.is_file()
+        assert self._link1.is_symlink()
+
+    def test_apply_file_filter_subdir(self):
+        assert self._file1.is_file()
+        assert self._file2.is_file()
+        assert self._link1.is_symlink()
+
+        part_handler._apply_file_filter(
+            filter_files={"dir1/file2"}, filter_dirs={"dir1"}, destdir=Path()
+        )
+
+        assert self._file1.exists() is False
+        assert self._file2.is_file()
+        assert self._link1.exists() is False
+
+    def test_apply_file_filter_exclude(self):
+        assert self._file1.is_file()
+        assert self._file2.is_file()
+        assert self._link1.is_symlink()
+
+        part_handler._apply_file_filter(
+            filter_files={"file1", "dir2"}, filter_dirs={"dir1"}, destdir=Path()
+        )
+
+        assert self._file1.is_file()
+        assert self._file2.exists() is False
+        assert self._dir1.is_dir()
+        assert self._link1.is_symlink()
