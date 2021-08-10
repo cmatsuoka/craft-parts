@@ -52,7 +52,9 @@ class OverlayManager:
         self._overlay_fs: Optional[OverlayFS] = None
         self._base_layer_dir = base_layer_dir
 
-    def mount_layer(self, part: Part, *, pkg_cache: bool = False) -> None:
+    def mount_layer(
+        self, part: Part, *, pkg_cache: bool = False, empty_base: bool = False
+    ) -> None:
         """Mount the overlay step layer stack up to the given part.
 
         :param part: The part corresponding to the topmost layer to mount.
@@ -61,7 +63,11 @@ class OverlayManager:
         if not self._base_layer_dir:
             return
 
-        lowers = [self._base_layer_dir]
+        if empty_base:
+            lowers = [self._project_info.overlay_empty_base_dir]
+        else:
+            lowers = [self._base_layer_dir]
+
         if pkg_cache:
             lowers.append(self._project_info.overlay_packages_dir)
         index = self._part_list.index(part)
@@ -155,6 +161,7 @@ class OverlayManager:
             self._project_info.overlay_dir,
             self._project_info.overlay_packages_dir,
             self._project_info.overlay_work_dir,
+            self._project_info.overlay_empty_base_dir,
         ]:
             overlay_dir.mkdir(parents=True, exist_ok=True)
 
@@ -196,14 +203,19 @@ class PackageCacheMounter:
 class LayerMounter:
     """Mount and umount the overlay layer stack."""
 
-    def __init__(self, overlay_manager: OverlayManager, top_part: Part):
+    def __init__(
+        self, overlay_manager: OverlayManager, top_part: Part, empty_base: bool = False
+    ):
         self._overlay_manager = overlay_manager
         self._overlay_manager.mkdirs()
         self._top_part = top_part
+        self._empty_base = empty_base
         self._pid = os.getpid()
 
     def __enter__(self):
-        self._overlay_manager.mount_layer(self._top_part, pkg_cache=True)
+        self._overlay_manager.mount_layer(
+            self._top_part, pkg_cache=True, empty_base=self._empty_base
+        )
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):

@@ -153,7 +153,7 @@ class StepHandler:
                 prefix_trim=self._part.part_install_dir,
             )
 
-        _migrate_files(
+        migrate_files(
             files=files,
             dirs=dirs,
             srcdir=str(self._part.part_install_dir),
@@ -173,7 +173,7 @@ class StepHandler:
 
         srcdir = str(self._part.part_install_dir)
         files, dirs = filesets.migratable_filesets(prime_fileset, srcdir)
-        _migrate_files(
+        migrate_files(
             files=files,
             dirs=dirs,
             srcdir=str(self._part.stage_dir),
@@ -320,7 +320,7 @@ class StepHandler:
             self._builtin_prime()
 
 
-def _migrate_files(
+def migrate_files(
     *,
     files: Set[str],
     dirs: Set[str],
@@ -330,6 +330,7 @@ def _migrate_files(
     follow_symlinks: bool = False,
     fixup_func=lambda *args: None,
 ):
+    """Copy or link the specified files and directories."""
     for dirname in sorted(dirs):
         src = os.path.join(srcdir, dirname)
         dst = os.path.join(destdir, dirname)

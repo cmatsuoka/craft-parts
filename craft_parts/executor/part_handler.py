@@ -29,15 +29,15 @@ from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, StepInfo
 from craft_parts.overlays import LayerMounter, OverlayManager, PackageCacheMounter
 from craft_parts.packages import errors as packages_errors
-from craft_parts.parts import Part
+from craft_parts.parts import Part, parts_with_overlay
 from craft_parts.plugins import Plugin
-from craft_parts.state_manager import states
-from craft_parts.state_manager.states import StepState
+from craft_parts.state_manager import State, StepState, states
 from craft_parts.steps import Step
 from craft_parts.utils import file_utils, os_utils
 
+from . import filesets
 from .organize import organize_files
-from .step_handler import StepContents, StepHandler
+from .step_handler import StepContents, StepHandler, migrate_files
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +238,8 @@ class PartHandler:
             work_dir=self._part.stage_dir,
         )
 
+        self._stage_overlay()
+
         overlay_hash = self._compute_layer_hash(all_parts=True)
 
         state = states.StageState(
@@ -257,6 +259,8 @@ class PartHandler:
             scriptlet_name="override-prime",
             work_dir=self._part.prime_dir,
         )
+
+        self._prime_overlay()
 
         state = states.PrimeState(
             part_properties=self._part_properties,
@@ -393,6 +397,46 @@ class PartHandler:
         )
 
         self._organize(overwrite=True)
+
+    def _stage_overlay(self) -> None:
+        """Migrate overlay files to stage and create state."""
+        stage_overlay_file = Path(self._part.overlay_dir / "stage_overlay")
+        if stage_overlay_file.exists():
+            return
+
+        if self._part not in parts_with_overlay(part_list=self._part_list):
+            return
+
+        state = self._migrate_overlay(
+            srcdir=self._part.overlay_dir, destdir=self._part.stage_dir
+        )
+        state.write(stage_overlay_file)
+
+    def _prime_overlay(self) -> None:
+        """Migrate overlay files to prime and create state."""
+        prime_overlay_file = Path(self._part.overlay_dir / "prime_overlay")
+        if prime_overlay_file.exists():
+            return
+
+        if self._part not in parts_with_overlay(part_list=self._part_list):
+            return
+
+        state = self._migrate_overlay(
+            srcdir=self._part.overlay_dir, destdir=self._part.prime_dir
+        )
+        state.write(prime_overlay_file)
+
+    def _migrate_overlay(self, srcdir: Path, destdir: Path) -> State:
+        """Migrate overlay files to prime and create state."""
+        overlay_fileset = filesets.Fileset(["*"])
+        files, dirs = filesets.migratable_filesets(overlay_fileset, str(srcdir))
+
+        with LayerMounter(self._overlay_manager, top_part=self._part, empty_base=True):
+            migrate_files(
+                files=files, dirs=dirs, srcdir=str(srcdir), destdir=str(destdir)
+            )
+
+        return State(files=files, directories=dirs)
 
     def clean_step(self, step: Step) -> None:
         """Remove the work files and the state of the given step.
@@ -718,8 +762,3 @@ def _load_part_states(step: Step, part_list: List[Part]) -> Dict[str, StepState]
         if state:
             part_states[part.name] = state
     return part_states
-
-
-def _parts_with_overlay_staged(part_list: List[Part]) -> List[Part]
-    oparts = parts.parts_with_overlay(part_list)
-    return [p for p in oparts if states.state_file_path(p, Step.STAGE).exists()]

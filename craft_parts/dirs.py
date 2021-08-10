@@ -56,6 +56,11 @@ class ProjectDirs:
         return self._work_dir / "overlay" / "work"
 
     @property
+    def overlay_empty_base_dir(self) -> Path:
+        """Return an empty directory for use as base."""
+        return self._work_dir / "overlay" / "empty"
+
+    @property
     def stage_dir(self) -> Path:
         """Return the staging area containing installed files from all parts."""
         return self._work_dir / "stage"

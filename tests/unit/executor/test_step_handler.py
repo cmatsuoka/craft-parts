@@ -147,7 +147,7 @@ class TestStepHandlerRunScriptlet:
 class TestFileMigration:
     """Verify different migration scenarios."""
 
-    def test_migrate_files_already_exists(self):
+    def testmigrate_files_already_exists(self):
         os.makedirs("install")
         os.makedirs("stage")
 
@@ -160,7 +160,7 @@ class TestFileMigration:
             f.write("installed")
 
         files, dirs = filesets.migratable_filesets(Fileset(["*"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files, dirs=dirs, srcdir="install", destdir="stage"
         )
 
@@ -170,7 +170,7 @@ class TestFileMigration:
                 f.read() == "installed"
             ), "Expected staging to allow overwriting of already-staged files"
 
-    def test_migrate_files_supports_no_follow_symlinks(self):
+    def testmigrate_files_supports_no_follow_symlinks(self):
         os.makedirs("install")
         os.makedirs("stage")
 
@@ -180,7 +180,7 @@ class TestFileMigration:
         os.symlink("foo", os.path.join("install", "bar"))
 
         files, dirs = filesets.migratable_filesets(Fileset(["*"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files,
             dirs=dirs,
             srcdir="install",
@@ -197,7 +197,7 @@ class TestFileMigration:
             os.readlink(os.path.join("stage", "bar")) == "foo"
         ), "Expected migrated 'bar' to point to 'foo'"
 
-    def test_migrate_files_preserves_symlink_file(self):
+    def testmigrate_files_preserves_symlink_file(self):
         os.makedirs("install")
         os.makedirs("stage")
 
@@ -207,7 +207,7 @@ class TestFileMigration:
         os.symlink("foo", os.path.join("install", "bar"))
 
         files, dirs = filesets.migratable_filesets(Fileset(["*"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files, dirs=dirs, srcdir="install", destdir="stage"
         )
 
@@ -216,7 +216,7 @@ class TestFileMigration:
             os.path.join("stage", "bar")
         ), "Expected migrated 'sym-a' to be a symlink."
 
-    def test_migrate_files_no_follow_symlinks(self):
+    def testmigrate_files_no_follow_symlinks(self):
         os.makedirs("install/usr/bin")
         os.makedirs("stage")
 
@@ -226,7 +226,7 @@ class TestFileMigration:
         os.symlink("usr/bin", os.path.join("install", "bin"))
 
         files, dirs = filesets.migratable_filesets(Fileset(["-usr"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files, dirs=dirs, srcdir="install", destdir="stage"
         )
 
@@ -238,7 +238,7 @@ class TestFileMigration:
             os.path.join("stage", "bin")
         ), "Expected migrated 'bin' to be a symlink."
 
-    def test_migrate_files_preserves_symlink_nested_file(self):
+    def testmigrate_files_preserves_symlink_nested_file(self):
         os.makedirs(os.path.join("install", "a"))
         os.makedirs("stage")
 
@@ -249,7 +249,7 @@ class TestFileMigration:
         os.symlink(os.path.join("foo"), os.path.join("install", "a", "bar"))
 
         files, dirs = filesets.migratable_filesets(Fileset(["*"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files, dirs=dirs, srcdir="install", destdir="stage"
         )
 
@@ -262,14 +262,14 @@ class TestFileMigration:
             os.path.join("stage", "a", "bar")
         ), "Expected migrated 'a/bar' to be a symlink."
 
-    def test_migrate_files_preserves_symlink_empty_dir(self):
+    def testmigrate_files_preserves_symlink_empty_dir(self):
         os.makedirs(os.path.join("install", "foo"))
         os.makedirs("stage")
 
         os.symlink("foo", os.path.join("install", "bar"))
 
         files, dirs = filesets.migratable_filesets(Fileset(["*"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files, dirs=dirs, srcdir="install", destdir="stage"
         )
 
@@ -278,7 +278,7 @@ class TestFileMigration:
             os.path.join("stage", "bar")
         ), "Expected migrated 'bar' to be a symlink."
 
-    def test_migrate_files_preserves_symlink_nonempty_dir(self):
+    def testmigrate_files_preserves_symlink_nonempty_dir(self):
         os.makedirs(os.path.join("install", "foo"))
         os.makedirs("stage")
 
@@ -288,7 +288,7 @@ class TestFileMigration:
             f.write("installed")
 
         files, dirs = filesets.migratable_filesets(Fileset(["*"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files, dirs=dirs, srcdir="install", destdir="stage"
         )
 
@@ -297,7 +297,7 @@ class TestFileMigration:
             os.path.join("stage", "bar")
         ), "Expected migrated 'bar' to be a symlink."
 
-    def test_migrate_files_preserves_symlink_nested_dir(self):
+    def testmigrate_files_preserves_symlink_nested_dir(self):
         os.makedirs(os.path.join("install", "a", "b"))
         os.makedirs("stage")
 
@@ -308,7 +308,7 @@ class TestFileMigration:
             f.write("installed")
 
         files, dirs = filesets.migratable_filesets(Fileset(["*"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files, dirs=dirs, srcdir="install", destdir="stage"
         )
 
@@ -321,7 +321,7 @@ class TestFileMigration:
             os.path.join("stage", "a", "bar")
         ), "Expected migrated 'a/bar' to be a symlink."
 
-    def test_migrate_files_supports_follow_symlinks(self):
+    def testmigrate_files_supports_follow_symlinks(self):
         os.makedirs("install")
         os.makedirs("stage")
 
@@ -331,7 +331,7 @@ class TestFileMigration:
         os.symlink("foo", os.path.join("install", "bar"))
 
         files, dirs = filesets.migratable_filesets(Fileset(["*"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files,
             dirs=dirs,
             srcdir="install",
@@ -349,7 +349,7 @@ class TestFileMigration:
                 f.read() == "installed"
             ), "Expected migrated 'bar' to be a copy of 'foo'"
 
-    def test_migrate_files_preserves_file_mode(self):
+    def testmigrate_files_preserves_file_mode(self):
         os.makedirs("install")
         os.makedirs("stage")
 
@@ -365,7 +365,7 @@ class TestFileMigration:
         assert mode != new_mode
 
         files, dirs = filesets.migratable_filesets(Fileset(["*"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files,
             dirs=dirs,
             srcdir="install",
@@ -375,9 +375,9 @@ class TestFileMigration:
 
         assert new_mode == stat.S_IMODE(os.stat(os.path.join("stage", "foo")).st_mode)
 
-    # TODO: add test_migrate_files_preserves_file_mode_chown_permissions
+    # TODO: add testmigrate_files_preserves_file_mode_chown_permissions
 
-    def test_migrate_files_preserves_directory_mode(self):
+    def testmigrate_files_preserves_directory_mode(self):
         os.makedirs("install/foo")
         os.makedirs("stage")
 
@@ -394,7 +394,7 @@ class TestFileMigration:
         os.chmod(filepath, new_mode)
 
         files, dirs = filesets.migratable_filesets(Fileset(["*"]), "install")
-        step_handler._migrate_files(
+        step_handler.migrate_files(
             files=files,
             dirs=dirs,
             srcdir="install",
