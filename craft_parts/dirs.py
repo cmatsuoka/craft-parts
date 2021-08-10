@@ -29,6 +29,7 @@ class ProjectDirs:
 
     def __init__(self, *, work_dir: Union[Path, str] = "."):
         self._work_dir = Path(work_dir).expanduser().resolve()
+        self._overlay_dir = self._work_dir / "overlay"
 
     @property
     def work_dir(self) -> Path:
@@ -36,29 +37,34 @@ class ProjectDirs:
         return self._work_dir
 
     @property
-    def parts_dir(self) -> Path:
-        """Return the directory containing work subdirectories for each part."""
-        return self._work_dir / "parts"
+    def overlay_dir(self) -> Path:
+        """Return the directory containing work subdirectories for overlays."""
+        return self._work_dir / "overlays"
 
     @property
-    def overlay_dir(self) -> Path:
+    def overlay_mount_dir(self) -> Path:
         """Return the directory containing overlay files from all parts."""
-        return self._work_dir / "overlay" / "overlay"
+        return self._overlay_dir / "overlay"
 
     @property
     def overlay_packages_dir(self) -> Path:
         """Return the directory containing overlay packages for all parts."""
-        return self._work_dir / "overlay" / "packages"
+        return self._overlay_dir / "packages"
 
     @property
     def overlay_work_dir(self) -> Path:
         """Return the overlayfs work directory."""
-        return self._work_dir / "overlay" / "work"
+        return self._overlay_dir / "work"
 
     @property
-    def overlay_empty_base_dir(self) -> Path:
-        """Return an empty directory for use as base."""
-        return self._work_dir / "overlay" / "empty"
+    def overlay_empty_dir(self) -> Path:
+        """Return the overlayfs work directory."""
+        return self._overlay_dir / "empty"
+
+    @property
+    def parts_dir(self) -> Path:
+        """Return the directory containing work subdirectories for each part."""
+        return self._work_dir / "parts"
 
     @property
     def stage_dir(self) -> Path:

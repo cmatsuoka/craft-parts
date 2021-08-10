@@ -402,28 +402,34 @@ class PartHandler:
         """Migrate overlay files to stage and create state."""
         stage_overlay_file = Path(self._part.overlay_dir / "stage_overlay")
         if stage_overlay_file.exists():
+            logger.debug("stage_overlay state exists")
             return
 
         if self._part not in parts_with_overlay(part_list=self._part_list):
             return
 
+        logger.debug("staging overlay files")
         state = self._migrate_overlay(
-            srcdir=self._part.overlay_dir, destdir=self._part.stage_dir
+            srcdir=self._part.overlay_mount_dir, destdir=self._part.stage_dir
         )
+        logger.debug("stage_overlay state: %s", state)
         state.write(stage_overlay_file)
 
     def _prime_overlay(self) -> None:
         """Migrate overlay files to prime and create state."""
         prime_overlay_file = Path(self._part.overlay_dir / "prime_overlay")
         if prime_overlay_file.exists():
+            logger.debug("prime_overlay state exists")
             return
 
         if self._part not in parts_with_overlay(part_list=self._part_list):
             return
 
+        logger.debug("priming overlay files")
         state = self._migrate_overlay(
-            srcdir=self._part.overlay_dir, destdir=self._part.prime_dir
+            srcdir=self._part.overlay_mount_dir, destdir=self._part.prime_dir
         )
+        logger.debug("prime_overlay state: %s", state)
         state.write(prime_overlay_file)
 
     def _migrate_overlay(self, srcdir: Path, destdir: Path) -> State:

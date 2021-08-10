@@ -48,7 +48,7 @@ class OverlayManager:
         self._project_info = project_info
         self._part_list = part_list
         self._layer_dirs = [p.part_layer_dir for p in part_list]
-        self._overlay_dir = project_info.overlay_dir
+        self._overlay_mount_dir = project_info.overlay_mount_dir
         self._overlay_fs: Optional[OverlayFS] = None
         self._base_layer_dir = base_layer_dir
 
@@ -64,7 +64,7 @@ class OverlayManager:
             return
 
         if empty_base:
-            lowers = [self._project_info.overlay_empty_base_dir]
+            lowers = [self._project_info.overlay_empty_dir]
         else:
             lowers = [self._base_layer_dir]
 
@@ -81,7 +81,7 @@ class OverlayManager:
             lower_dir=lowers,
             upper_dir=upper,
             work_dir=self._project_info.overlay_work_dir,
-            mountpoint=self._project_info.overlay_dir,
+            mountpoint=self._project_info.overlay_mount_dir,
         )
 
         self._overlay_fs.mount()
@@ -95,7 +95,7 @@ class OverlayManager:
             lower_dir=self._base_layer_dir,
             upper_dir=self._project_info.overlay_packages_dir,
             work_dir=self._project_info.overlay_work_dir,
-            mountpoint=self._project_info.overlay_dir,
+            mountpoint=self._project_info.overlay_mount_dir,
         )
 
         self._overlay_fs.mount()
@@ -123,7 +123,7 @@ class OverlayManager:
 
         self._fix_resolv_conf()
 
-        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_dir):
+        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_mount_dir):
             packages.Repository.refresh_build_packages_list()
 
     def fetch_packages(self, package_names: List[str]) -> None:
@@ -137,7 +137,7 @@ class OverlayManager:
 
         self._fix_resolv_conf()
 
-        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_dir):
+        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_mount_dir):
             packages.Repository.fetch_packages(package_names)
 
     def install_packages(self, package_names: List[str]) -> None:
@@ -151,23 +151,23 @@ class OverlayManager:
 
         self._fix_resolv_conf()
 
-        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_dir):
+        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_mount_dir):
             packages.Repository.install_build_packages(package_names)
             shutil.rmtree("/var/cache", ignore_errors=True)
 
     def mkdirs(self) -> None:
         """Create overlay directories and mountpoints."""
         for overlay_dir in [
-            self._project_info.overlay_dir,
+            self._project_info.overlay_mount_dir,
             self._project_info.overlay_packages_dir,
             self._project_info.overlay_work_dir,
-            self._project_info.overlay_empty_base_dir,
+            self._project_info.overlay_empty_dir,
         ]:
             overlay_dir.mkdir(parents=True, exist_ok=True)
 
     def _fix_resolv_conf(self) -> None:
         """Work around problems with pychroot when resolv.conf a symlink."""
-        resolv = self._project_info.overlay_dir / "etc" / "resolv.conf"
+        resolv = self._project_info.overlay_mount_dir / "etc" / "resolv.conf"
         if resolv.is_symlink():
             resolv.unlink()
             resolv.touch()
