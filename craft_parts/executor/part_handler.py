@@ -718,3 +718,8 @@ def _load_part_states(step: Step, part_list: List[Part]) -> Dict[str, StepState]
         if state:
             part_states[part.name] = state
     return part_states
+
+
+def _parts_with_overlay_staged(part_list: List[Part]) -> List[Part]
+    oparts = parts.parts_with_overlay(part_list)
+    return [p for p in oparts if states.state_file_path(p, Step.STAGE).exists()]
