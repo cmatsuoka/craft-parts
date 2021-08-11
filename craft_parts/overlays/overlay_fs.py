@@ -17,6 +17,7 @@
 """Low level interface to OS overlayfs."""
 
 import logging
+import os
 from pathlib import Path
 from typing import List, Union
 
@@ -60,3 +61,13 @@ class OverlayFS:
         """Umount an overlayfs."""
         logger.debug("unmount overlayfs from %s", self._mountpoint)
         os_utils.umount(self._mountpoint)
+
+
+def is_whiteout_file(path: Path) -> bool:
+    """Verify if the given path corresponds to a whiteout file."""
+    if not path.is_char_device() or path.is_symlink():
+        return False
+
+    rdev = os.stat(path).st_rdev
+
+    return os.major(rdev) == 0 and os.minor(rdev) == 0

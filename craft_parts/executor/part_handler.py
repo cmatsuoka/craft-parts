@@ -153,6 +153,7 @@ class PartHandler:
         with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
             self._install_overlay_packages(ctx)
 
+        with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
             contents = self._run_step(
                 step_info=step_info,
                 scriptlet_name="overlay-script",
@@ -451,9 +452,13 @@ class PartHandler:
             self._overlay_manager, top_part=last_part, pkg_cache=False, empty_base=True
         ):
             files, dirs = filesets.migratable_filesets(overlay_fileset, str(srcdir))
+
             migrate_files(
                 files=files, dirs=dirs, srcdir=str(srcdir), destdir=str(destdir)
             )
+
+        for part in reversed(self._part_list):
+            files |= _migrate_whiteouts(srcdir=part.part_layer_dir, destdir=destdir)
 
         return State(files=files, directories=dirs)
 
@@ -750,7 +755,7 @@ def _apply_file_filter(
         for file_name in files:
             path = Path(root, file_name)
             relpath = path.relative_to(destdir)
-            if str(relpath) not in filter_files:
+            if str(relpath) not in filter_files and not overlays.is_whiteout_file(path):
                 logger.debug("delete file: %s", relpath)
                 path.unlink()
 
@@ -863,3 +868,21 @@ def _staged_parts_with_overlay(part_list: List[Part]) -> List[Part]:
     """Obtain a list of parts with overlay that have been staged."""
     oparts = parts_with_overlay(part_list=part_list)
     return [p for p in oparts if states.state_file_path(p, Step.STAGE).exists()]
+
+
+def _migrate_whiteouts(*, srcdir: Path, destdir: Path) -> Set[str]:
+    whiteouts: Set[str] = set()
+
+    for (root, _, files) in os.walk(srcdir, topdown=True):
+        for file_name in files:
+            path = Path(root, file_name)
+            relpath = path.relative_to(srcdir)
+            if overlays.is_whiteout_file(path):
+                logger.debug("whiteout file: %s", relpath)
+                destpath = destdir / relpath
+                if not destpath.exists():
+                    whiteouts.add(str(relpath))
+
+    migrate_files(files=whiteouts, dirs=set(), srcdir=str(srcdir), destdir=str(destdir))
+
+    return whiteouts
