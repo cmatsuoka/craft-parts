@@ -34,7 +34,7 @@ class State(YamlModel, ABC):
     @classmethod
     def unmarshal(cls, data: Dict[str, Any]):
         """Create and populate a new state object from dictionary data."""
-        raise RuntimeError("this must be implemented by the step-specific class.")
+        return cls(**data)
 
     def marshal(self) -> Dict[str, Any]:
         """Create a dictionary containing the part state data.
@@ -69,6 +69,11 @@ class StepState(State, ABC):
         allow_mutation = False
         alias_generator = lambda s: s.replace("_", "-")  # noqa: E731
         allow_population_by_field_name = True
+
+    @classmethod
+    def unmarshal(cls, data: Dict[str, Any]):
+        """Create and populate a new state object from dictionary data."""
+        raise RuntimeError("this must be implemented by the step-specific class.")
 
     @abstractmethod
     def properties_of_interest(self, part_properties: Dict[str, Any]) -> Dict[str, Any]:

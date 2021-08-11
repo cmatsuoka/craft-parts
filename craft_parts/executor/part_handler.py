@@ -24,6 +24,8 @@ from glob import iglob
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set
 
+import yaml
+
 from craft_parts import callbacks, errors, overlays, packages, plugins, sources
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, StepInfo
@@ -408,7 +410,7 @@ class PartHandler:
 
     def _stage_overlay(self) -> None:
         """Migrate overlay files to stage and create state."""
-        stage_overlay_file = Path(self._part.overlay_dir / "stage_overlay")
+        stage_overlay_file = self._overlay_state_file(Step.STAGE)
         if stage_overlay_file.exists():
             logger.debug("stage_overlay state exists")
             return
@@ -425,7 +427,7 @@ class PartHandler:
 
     def _prime_overlay(self) -> None:
         """Migrate overlay files to prime and create state."""
-        prime_overlay_file = Path(self._part.overlay_dir / "prime_overlay")
+        prime_overlay_file = self._overlay_state_file(Step.PRIME)
         if prime_overlay_file.exists():
             logger.debug("prime_overlay state exists")
             return
@@ -509,6 +511,14 @@ class PartHandler:
             part_states=part_states,
         )
 
+        # remove overlay data if this is the last staged part with overlay
+        if len(_staged_parts_with_overlay(part_list=self._part_list)) == 1:
+            _clean_shared_overlay(
+                state_file=self._overlay_state_file(Step.STAGE),
+                shared_dir=self._part.stage_dir,
+                part_states=part_states,
+            )
+
     def _clean_prime(self) -> None:
         """Remove the current part's prime step files and state."""
         part_states = _load_part_states(Step.PRIME, self._part_list)
@@ -517,6 +527,14 @@ class PartHandler:
             shared_dir=self._part.prime_dir,
             part_states=part_states,
         )
+
+        # remove overlay data if this is the last primed part with overlay
+        if len(_staged_parts_with_overlay(part_list=self._part_list)) == 1:
+            _clean_shared_overlay(
+                state_file=self._overlay_state_file(Step.PRIME),
+                shared_dir=self._part.prime_dir,
+                part_states=part_states,
+            )
 
     def _make_dirs(self):
         dirs = [
@@ -619,6 +637,15 @@ class PartHandler:
         for snap_source in snap_sources:
             snap_source.provision(str(install_dir), clean_target=False, keep=True)
 
+    def _overlay_state_file(self, step: Step) -> Path:
+        if step == Step.STAGE:
+            return Path(self._part.overlay_dir / "stage_overlay")
+
+        if step == Step.PRIME:
+            return Path(self._part.overlay_dir / "prime_overlay")
+
+        raise RuntimeError(f"no overlay migration state in step {step!r}")
+
 
 def _remove(filename: Path) -> None:
     if filename.is_symlink() or filename.is_file():
@@ -658,6 +685,28 @@ def _clean_shared_area(
 
     # Finally, clean the files and directories that are specific to this
     # part.
+    _clean_migrated_files(files, directories, shared_dir)
+
+
+def _clean_shared_overlay(
+    *, state_file: Path, shared_dir: Path, part_states: Dict[str, StepState]
+) -> None:
+    # no state defined for staging overlay, we won't remove files
+    if not state_file.is_file():
+        return
+
+    with open(state_file) as file:
+        state_data = yaml.safe_load(file)
+    state = State.unmarshal(state_data)
+    files = state.files
+    directories = state.directories
+
+    # Don't remove entries that also belong to a part.
+    for other_state in part_states.values():
+        if other_state:
+            files -= other_state.files
+            directories -= other_state.directories
+
     _clean_migrated_files(files, directories, shared_dir)
 
 
@@ -808,3 +857,9 @@ def _load_part_states(step: Step, part_list: List[Part]) -> Dict[str, StepState]
         if state:
             part_states[part.name] = state
     return part_states
+
+
+def _staged_parts_with_overlay(part_list: List[Part]) -> List[Part]:
+    """Obtain a list of parts with overlay that have been staged."""
+    oparts = parts_with_overlay(part_list=part_list)
+    return [p for p in oparts if states.state_file_path(p, Step.STAGE).exists()]
