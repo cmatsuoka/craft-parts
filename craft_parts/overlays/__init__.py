@@ -19,6 +19,7 @@
 from .overlay_fs import is_whiteout_file  # noqa: F401
 from .overlay_manager import LayerMounter  # noqa: F401
 from .overlay_manager import OverlayManager  # noqa: F401
+from .overlay_manager import OverlayMigrationMounter  # noqa: F401
 from .overlay_manager import PackageCacheMounter  # noqa: F401
 from .overlays import compute_layer_hash  # noqa: F401
 from .overlays import load_layer_hash  # noqa: F401

@@ -21,6 +21,7 @@ import logging
 import os
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 from typing import List, Optional
 
@@ -53,19 +54,18 @@ class OverlayManager:
         self._base_layer_dir = base_layer_dir
 
     def mount_layer(
-        self, part: Part, *, pkg_cache: bool = False, empty_base: bool = False
+        self, part: Part, *, base: Optional[Path] = None, pkg_cache: bool = False
     ) -> None:
         """Mount the overlay step layer stack up to the given part.
 
         :param part: The part corresponding to the topmost layer to mount.
         :param pkg cache: Whether the package cache layer is enabled.
         """
-        if not self._base_layer_dir:
-            return
-
-        if empty_base:
-            lowers = [self._project_info.overlay_empty_dir]
+        if base:
+            lowers = [base]
         else:
+            if not self._base_layer_dir:
+                return
             lowers = [self._base_layer_dir]
 
         if pkg_cache:
@@ -161,7 +161,6 @@ class OverlayManager:
             self._project_info.overlay_mount_dir,
             self._project_info.overlay_packages_dir,
             self._project_info.overlay_work_dir,
-            self._project_info.overlay_empty_dir,
         ]:
             overlay_dir.mkdir(parents=True, exist_ok=True)
 
@@ -208,18 +207,17 @@ class LayerMounter:
         overlay_manager: OverlayManager,
         top_part: Part,
         pkg_cache: bool = True,
-        empty_base: bool = False,
     ):
         self._overlay_manager = overlay_manager
         self._overlay_manager.mkdirs()
         self._top_part = top_part
         self._pkg_cache = pkg_cache
-        self._empty_base = empty_base
         self._pid = os.getpid()
 
     def __enter__(self):
         self._overlay_manager.mount_layer(
-            self._top_part, pkg_cache=self._pkg_cache, empty_base=self._empty_base
+            self._top_part,
+            pkg_cache=self._pkg_cache,
         )
         return self
 
@@ -232,3 +230,33 @@ class LayerMounter:
     def install_packages(self, package_names: List[str]) -> None:
         """Install the specified packages on the local system."""
         self._overlay_manager.install_packages(package_names)
+
+
+class OverlayMigrationMounter:
+    """Mount and umount the overlay layer stack."""
+
+    def __init__(
+        self,
+        overlay_manager: OverlayManager,
+        top_part: Part,
+    ):
+        self._overlay_manager = overlay_manager
+        self._overlay_manager.mkdirs()
+        self._top_part = top_part
+        self._pid = os.getpid()
+        self._empty_dir: tempfile.TemporaryDirectory
+
+    def __enter__(self):
+        self._empty_dir = tempfile.TemporaryDirectory()
+        self._overlay_manager.mount_layer(
+            self._top_part, base=Path(self._empty_dir.name), pkg_cache=False
+        )
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        if os.getpid() != self._pid:
+            sys.exit()
+        self._overlay_manager.unmount()
+        self._empty_dir.cleanup()
+
+        return False

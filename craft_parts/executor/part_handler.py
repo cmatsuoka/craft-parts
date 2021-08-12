@@ -29,7 +29,12 @@ import yaml
 from craft_parts import callbacks, errors, overlays, packages, plugins, sources
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, StepInfo
-from craft_parts.overlays import LayerMounter, OverlayManager, PackageCacheMounter
+from craft_parts.overlays import (
+    LayerMounter,
+    OverlayManager,
+    OverlayMigrationMounter,
+    PackageCacheMounter,
+)
 from craft_parts.packages import errors as packages_errors
 from craft_parts.parts import Part, parts_with_overlay
 from craft_parts.plugins import Plugin
@@ -150,6 +155,7 @@ class PartHandler:
     def _run_overlay(self, step_info: StepInfo) -> StepState:
         self._make_dirs()
 
+        # must be in a separate context manager to work around pychroot process leak
         with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
             self._install_overlay_packages(ctx)
 
@@ -448,9 +454,7 @@ class PartHandler:
         overlay_fileset = filesets.Fileset(["*"])
         last_part = self._part_list[-1]
 
-        with LayerMounter(
-            self._overlay_manager, top_part=last_part, pkg_cache=False, empty_base=True
-        ):
+        with OverlayMigrationMounter(self._overlay_manager, top_part=last_part):
             files, dirs = filesets.migratable_filesets(overlay_fileset, str(srcdir))
 
             migrate_files(
