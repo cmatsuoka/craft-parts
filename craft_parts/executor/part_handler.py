@@ -883,6 +883,7 @@ def _staged_parts_with_overlay(part_list: List[Part]) -> List[Part]:
 
 
 def _migrate_whiteouts(*, srcdir: Path, destdir: Path) -> Set[str]:
+    migratable_whiteouts: Set[str] = set()
     whiteouts: Set[str] = set()
 
     for (root, _, files) in os.walk(srcdir, topdown=True):
@@ -892,9 +893,14 @@ def _migrate_whiteouts(*, srcdir: Path, destdir: Path) -> Set[str]:
             if overlays.is_whiteout_file(path):
                 logger.debug("whiteout file: %s", relpath)
                 destpath = destdir / relpath
-                if not destpath.exists():
-                    whiteouts.add(str(relpath))
+                oci_relpath = overlays.oci_whiteout(relpath)
+                oci_destpath = destdir / oci_relpath
+                if not destpath.exists() and not oci_destpath.exists():
+                    migratable_whiteouts.add(str(relpath))
+                    whiteouts.add(str(oci_relpath))
 
-    migrate_files(files=whiteouts, dirs=set(), srcdir=str(srcdir), destdir=str(destdir))
+    migrate_files(
+        files=migratable_whiteouts, dirs=set(), srcdir=str(srcdir), destdir=str(destdir)
+    )
 
     return whiteouts

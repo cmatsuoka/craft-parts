@@ -71,3 +71,8 @@ def is_whiteout_file(path: Path) -> bool:
     rdev = os.stat(path).st_rdev
 
     return os.major(rdev) == 0 and os.minor(rdev) == 0
+
+
+def oci_whiteout(path: Path) -> Path:
+    """Convert the given path to an OCI whiteout file name."""
+    return path.parent / (".wh." + path.name)

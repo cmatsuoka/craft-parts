@@ -29,7 +29,7 @@ import time
 from pathlib import Path
 from typing import List, Optional, Set
 
-from craft_parts import errors, packages
+from craft_parts import errors, overlays, packages
 from craft_parts.executor import collisions
 from craft_parts.infos import StepInfo
 from craft_parts.parts import Part
@@ -348,9 +348,13 @@ def migrate_files(
         if os.path.exists(dst):
             os.remove(dst)
 
-        file_utils.link_or_copy(src, dst, follow_symlinks=follow_symlinks)
-
-        fixup_func(dst)
+        if overlays.is_whiteout_file(Path(src)):
+            # TODO: check if is visible from the top of the layer
+            oci_dst = overlays.oci_whiteout(Path(dst))
+            oci_dst.touch()
+        else:
+            file_utils.link_or_copy(src, dst, follow_symlinks=follow_symlinks)
+            fixup_func(dst)
 
 
 def _check_conflicts(
