@@ -389,7 +389,7 @@ def part_dependencies(
 
 
 def has_overlay_visibility(
-    part: Part, *, viewers: Set[Part], part_list: List[Part]
+    part: Part, *, part_list: List[Part], viewers: Optional[Set[Part]] = None
 ) -> bool:
     """Check if a part can see the overlay filesystem.
 
@@ -397,11 +397,12 @@ def has_overlay_visibility(
     are granted permission to see overlay filesystem.
 
     :param part: The part whose overlay visibility will be checked.
+    :param viewers: Parts that are known to have overlay visibility.
     :param part_list: A list of all parts in the project.
 
     :return: Whether the part has overlay visibility.
     """
-    if part in viewers or part.has_overlay:
+    if (viewers and part in viewers) or part.has_overlay:
         return True
 
     if not part.spec.after:

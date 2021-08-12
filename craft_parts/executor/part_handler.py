@@ -36,7 +36,7 @@ from craft_parts.overlays import (
     PackageCacheMounter,
 )
 from craft_parts.packages import errors as packages_errors
-from craft_parts.parts import Part, parts_with_overlay
+from craft_parts.parts import Part, has_overlay_visibility, parts_with_overlay
 from craft_parts.plugins import Plugin
 from craft_parts.state_manager import State, StepState, states
 from craft_parts.steps import Step
@@ -206,11 +206,19 @@ class PartHandler:
         )
 
         # Perform the build step
-        self._run_step(
-            step_info=step_info,
-            scriptlet_name="override-build",
-            work_dir=self._part.part_build_dir,
-        )
+        if has_overlay_visibility(self._part, part_list=self._part_list):
+            with LayerMounter(self._overlay_manager, top_part=self._part):
+                self._run_step(
+                    step_info=step_info,
+                    scriptlet_name="override-build",
+                    work_dir=self._part.part_build_dir,
+                )
+        else:
+            self._run_step(
+                step_info=step_info,
+                scriptlet_name="override-build",
+                work_dir=self._part.part_build_dir,
+            )
 
         # Organize the installed files as requested. We do this in the build step for
         # two reasons:
