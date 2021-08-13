@@ -64,13 +64,46 @@ class OverlayFS:
 
 
 def is_whiteout_file(path: Path) -> bool:
-    """Verify if the given path corresponds to a whiteout file."""
+    """Verify if the given path corresponds to a whiteout file.
+
+    :param path: The path of the file to verify.
+
+    :return: Whether the given path is an overlayfs whiteout.
+    """
     if not path.is_char_device() or path.is_symlink():
         return False
 
     rdev = os.stat(path).st_rdev
 
     return os.major(rdev) == 0 and os.minor(rdev) == 0
+
+
+def is_opaque_dir(path: Path) -> bool:
+    """Verify if the given path corresponds to an opaque directory.
+
+    :param path: The path of the file to verify.
+
+    :return: Whether the given path is an overlayfs opaque directory.
+    """
+    if not path.is_dir() or path.is_symlink():
+        return False
+
+    value = os.getxattr(path, "trusted.overlay.opaque")
+
+    return value == b"y"
+
+
+def is_path_visible(root: Path, relpath: Path) -> bool:
+    """Verify if the given path is not whited out."""
+    logger.debug("check if path is visible: root=%s, relpath=%s", root, relpath)
+    levels = len(relpath.parts)
+    for level in range(levels):
+        path = root / os.path.join(*relpath.parts[: level + 1])
+        logger.debug("check %s", path)
+        if is_whiteout_file(path) or is_opaque_dir(path):
+            logger.debug("is whiteout or opaque: %s", path)
+            return False
+    return True
 
 
 def oci_whiteout(path: Path) -> Path:

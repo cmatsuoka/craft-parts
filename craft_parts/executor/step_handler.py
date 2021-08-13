@@ -349,7 +349,6 @@ def migrate_files(
             os.remove(dst)
 
         if overlays.is_whiteout_file(Path(src)):
-            # TODO: check if is visible from the top of the layer
             oci_dst = overlays.oci_whiteout(Path(dst))
             oci_dst.touch()
         else:

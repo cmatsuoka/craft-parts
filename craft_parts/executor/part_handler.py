@@ -470,7 +470,9 @@ class PartHandler:
             )
 
         for part in reversed(self._part_list):
-            files |= _migrate_whiteouts(srcdir=part.part_layer_dir, destdir=destdir)
+            files |= _migrate_whiteouts(
+                self._overlay_manager, srcdir=part.part_layer_dir, destdir=destdir
+            )
 
         return State(files=files, directories=dirs)
 
@@ -882,7 +884,9 @@ def _staged_parts_with_overlay(part_list: List[Part]) -> List[Part]:
     return [p for p in oparts if states.state_file_path(p, Step.STAGE).exists()]
 
 
-def _migrate_whiteouts(*, srcdir: Path, destdir: Path) -> Set[str]:
+def _migrate_whiteouts(
+    omgr: OverlayManager, *, srcdir: Path, destdir: Path
+) -> Set[str]:
     migratable_whiteouts: Set[str] = set()
     whiteouts: Set[str] = set()
 
@@ -892,10 +896,9 @@ def _migrate_whiteouts(*, srcdir: Path, destdir: Path) -> Set[str]:
             relpath = path.relative_to(srcdir)
             if overlays.is_whiteout_file(path):
                 logger.debug("whiteout file: %s", relpath)
-                destpath = destdir / relpath
-                oci_relpath = overlays.oci_whiteout(relpath)
-                oci_destpath = destdir / oci_relpath
-                if not destpath.exists() and not oci_destpath.exists():
+                # migrate the whiteout file if it's visible from the top layer
+                if omgr.is_path_visible(srcdir, relpath):
+                    oci_relpath = overlays.oci_whiteout(relpath)
                     migratable_whiteouts.add(str(relpath))
                     whiteouts.add(str(oci_relpath))
 

@@ -31,6 +31,7 @@ from craft_parts import packages
 from craft_parts.infos import ProjectInfo
 from craft_parts.parts import Part
 
+from . import overlay_fs
 from .overlay_fs import OverlayFS
 
 logger = logging.getLogger(__name__)
@@ -125,6 +126,18 @@ class OverlayManager:
 
         with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_mount_dir):
             packages.Repository.refresh_build_packages_list()
+
+    def is_path_visible(self, target_layer_dir: Path, relpath: Path) -> bool:
+        """Verify if the given relative path is not whited out."""
+        logger.debug("check if path is visible: target_layer_dir=%s, relpath=%s", target_layer_dir, relpath)
+        for layer_dir in reversed(self._layer_dirs):
+            if layer_dir == target_layer_dir:
+                return True
+            visible = overlay_fs.is_path_visible(layer_dir, relpath)
+            if not visible:
+                return False
+
+        return True
 
     def fetch_packages(self, package_names: List[str]) -> None:
         """Update the list of available packages in the overlay system."""
