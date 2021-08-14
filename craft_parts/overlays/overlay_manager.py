@@ -129,7 +129,11 @@ class OverlayManager:
 
     def is_path_visible(self, target_layer_dir: Path, relpath: Path) -> bool:
         """Verify if the given relative path is not whited out."""
-        logger.debug("check if path is visible: target_layer_dir=%s, relpath=%s", target_layer_dir, relpath)
+        logger.debug(
+            "check if path is visible: target_layer_dir=%s, relpath=%s",
+            target_layer_dir,
+            relpath,
+        )
         for layer_dir in reversed(self._layer_dirs):
             if layer_dir == target_layer_dir:
                 return True

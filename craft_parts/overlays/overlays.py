@@ -17,8 +17,16 @@
 """The overlay manager and helpers."""
 
 import hashlib
+import logging
+import os
+from pathlib import Path
+from typing import Set, Tuple
 
 from craft_parts.parts import Part
+
+from . import overlay_fs
+
+logger = logging.getLogger(__name__)
 
 
 def compute_layer_hash(part: Part, previous_layer_hash: bytes) -> bytes:
@@ -69,3 +77,35 @@ def save_layer_hash(part: Part, *, hash_bytes: bytes) -> None:
     """
     hash_file = part.part_state_dir / "layer_hash"
     hash_file.write_text(hash_bytes.hex())
+
+
+def visible_in_layer(srcdir: Path, destdir: Path) -> Tuple[Set[str], Set[str]]:
+    """Determine the files and directories that are visible in a layer."""
+    migratable_files: Set[str] = set()
+    migratable_dirs: Set[str] = set()
+
+    logger.debug("check layer visibility in %s", srcdir)
+    for (root, directories, files) in os.walk(srcdir, topdown=True):
+        for file_name in files:
+            path = Path(root, file_name)
+            relpath = path.relative_to(srcdir)
+            destpath = destdir / relpath
+            if not destpath.exists():
+                migratable_files.add(str(relpath))
+
+        for directory in directories:
+            path = Path(root, directory)
+            relpath = path.relative_to(srcdir)
+            destpath = destdir / relpath
+            if not destpath.exists():
+                if path.is_symlink():
+                    migratable_files.add(str(relpath))
+                else:
+                    migratable_dirs.add(str(relpath))
+            elif overlay_fs.is_opaque_dir(destpath):
+                logger.debug("is opaque dir: %s", relpath)
+                # Don't descend into this directory, overridden by opaque
+                directories.remove(directory)
+
+    logger.debug("files=%r, dirs=%r", migratable_files, migratable_dirs)
+    return migratable_files, migratable_dirs

@@ -29,12 +29,7 @@ import yaml
 from craft_parts import callbacks, errors, overlays, packages, plugins, sources
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, StepInfo
-from craft_parts.overlays import (
-    LayerMounter,
-    OverlayManager,
-    OverlayMigrationMounter,
-    PackageCacheMounter,
-)
+from craft_parts.overlays import LayerMounter, OverlayManager, PackageCacheMounter
 from craft_parts.packages import errors as packages_errors
 from craft_parts.parts import Part, has_overlay_visibility, parts_with_overlay
 from craft_parts.plugins import Plugin
@@ -434,9 +429,7 @@ class PartHandler:
             return
 
         logger.debug("staging overlay files")
-        state = self._migrate_overlay(
-            srcdir=self._part.overlay_mount_dir, destdir=self._part.stage_dir
-        )
+        state = self._migrate_overlay(destdir=self._part.stage_dir)
         logger.debug("stage_overlay state: %s", state)
         state.write(stage_overlay_file)
 
@@ -451,30 +444,29 @@ class PartHandler:
             return
 
         logger.debug("priming overlay files")
-        state = self._migrate_overlay(
-            srcdir=self._part.overlay_mount_dir, destdir=self._part.prime_dir
-        )
+        state = self._migrate_overlay(destdir=self._part.prime_dir)
         logger.debug("prime_overlay state: %s", state)
         state.write(prime_overlay_file)
 
-    def _migrate_overlay(self, srcdir: Path, destdir: Path) -> State:
+    def _migrate_overlay(self, destdir: Path) -> State:
         """Migrate overlay files to prime and create state."""
-        overlay_fileset = filesets.Fileset(["*"])
-        last_part = self._part_list[-1]
-
-        with OverlayMigrationMounter(self._overlay_manager, top_part=last_part):
-            files, dirs = filesets.migratable_filesets(overlay_fileset, str(srcdir))
-
-            migrate_files(
-                files=files, dirs=dirs, srcdir=str(srcdir), destdir=str(destdir)
-            )
+        migratable_files: Set[str] = set()
+        migratable_dirs: Set[str] = set()
 
         for part in reversed(self._part_list):
-            files |= _migrate_whiteouts(
-                self._overlay_manager, srcdir=part.part_layer_dir, destdir=destdir
-            )
+            if not part.has_overlay:
+                continue
 
-        return State(files=files, directories=dirs)
+            logger.debug("migrate part %r overlay", part.name)
+            srcdir = str(part.part_layer_dir)
+            files, dirs = overlays.visible_in_layer(srcdir, destdir)
+            migrate_files(
+                files=files, dirs=dirs, srcdir=srcdir, destdir=str(destdir)
+            )
+            migratable_files |= files
+            migratable_dirs |= dirs
+
+        return State(files=migratable_files, directories=migratable_dirs)
 
     def clean_step(self, step: Step) -> None:
         """Remove the work files and the state of the given step.

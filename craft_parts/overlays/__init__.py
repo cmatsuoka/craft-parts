@@ -25,3 +25,4 @@ from .overlay_manager import PackageCacheMounter  # noqa: F401
 from .overlays import compute_layer_hash  # noqa: F401
 from .overlays import load_layer_hash  # noqa: F401
 from .overlays import save_layer_hash  # noqa: F401
+from .overlays import visible_in_layer  # noqa: F401
