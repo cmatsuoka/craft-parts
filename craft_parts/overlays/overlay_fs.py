@@ -88,9 +88,26 @@ def is_opaque_dir(path: Path) -> bool:
     if not path.is_dir() or path.is_symlink():
         return False
 
-    value = os.getxattr(path, "trusted.overlay.opaque")
+    try:
+        value = os.getxattr(path, "trusted.overlay.opaque")
+    except OSError:
+        return False
 
     return value == b"y"
+
+
+def is_oci_opaque_dir(path: Path) -> bool:
+    """Verify if the given path corresponds to an opaque directory.
+
+    :param path: The path of the file to verify.
+
+    :return: Whether the given path is an overlayfs opaque directory.
+    """
+    if not path.is_dir() or path.is_symlink():
+        return False
+
+    opaque_dir_marker = path / ".wh..wh..opq"
+    return opaque_dir_marker.exists()
 
 
 def is_path_visible(root: Path, relpath: Path) -> bool:
@@ -106,6 +123,11 @@ def is_path_visible(root: Path, relpath: Path) -> bool:
     return True
 
 
-def oci_whiteout(path: Path) -> Path:
+def oci_whiteout(path: str) -> str:
     """Convert the given path to an OCI whiteout file name."""
-    return path.parent / (".wh." + path.name)
+    return os.path.join(os.path.dirname(path), ".wh." + os.path.basename(path))
+
+
+def oci_opaque_dir(path: str) -> str:
+    """Return the OCI opaque directory marker."""
+    return os.path.join(path, ".wh..wh..opq")

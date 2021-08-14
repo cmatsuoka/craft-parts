@@ -27,7 +27,7 @@ import tempfile
 import textwrap
 import time
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 
 from craft_parts import errors, overlays, packages
 from craft_parts.executor import collisions
@@ -149,7 +149,7 @@ class StepHandler:
                 prefix_trim=self._part.part_install_dir,
             )
 
-        migrate_files(
+        files, dirs = migrate_files(
             files=files,
             dirs=dirs,
             srcdir=str(self._part.part_install_dir),
@@ -169,7 +169,7 @@ class StepHandler:
 
         srcdir = str(self._part.part_install_dir)
         files, dirs = filesets.migratable_filesets(prime_fileset, srcdir)
-        migrate_files(
+        files, dirs = migrate_files(
             files=files,
             dirs=dirs,
             srcdir=str(self._part.stage_dir),
@@ -324,16 +324,27 @@ def migrate_files(
     destdir: str,
     missing_ok: bool = False,
     follow_symlinks: bool = False,
+    oci_translation: bool = False,
     fixup_func=lambda *args: None,
-):
+) -> Tuple[Set[str], Set[str]]:
     """Copy or link the specified files and directories."""
-    for dirname in sorted(dirs):
+    migrated_files: Set[str] = set()
+    migrated_dirs: Set[str] = set()
+
+    for dirname in dirs:
         src = os.path.join(srcdir, dirname)
         dst = os.path.join(destdir, dirname)
 
         file_utils.create_similar_directory(src, dst)
+        migrated_dirs.add(dirname)
 
-    for filename in sorted(files):
+        if oci_translation and overlays.is_opaque_dir(Path(src)):
+            oci_opaque_marker = overlays.oci_opaque_dir(dirname)
+            oci_dst = Path(destdir, oci_opaque_marker)
+            oci_dst.touch()
+            migrated_files.add(oci_opaque_marker)
+
+    for filename in files:
         src = os.path.join(srcdir, filename)
         dst = os.path.join(destdir, filename)
 
@@ -348,12 +359,17 @@ def migrate_files(
         if os.path.exists(dst):
             os.remove(dst)
 
-        if overlays.is_whiteout_file(Path(src)):
-            oci_dst = overlays.oci_whiteout(Path(dst))
+        if oci_translation and overlays.is_whiteout_file(Path(src)):
+            oci_whiteout = overlays.oci_whiteout(filename)
+            oci_dst = Path(destdir, oci_whiteout)
             oci_dst.touch()
+            migrated_files.add(oci_whiteout)
         else:
             file_utils.link_or_copy(src, dst, follow_symlinks=follow_symlinks)
             fixup_func(dst)
+            migrated_files.add(filename)
+
+    return migrated_files, migrated_dirs
 
 
 def _check_conflicts(

@@ -102,7 +102,7 @@ def visible_in_layer(srcdir: Path, destdir: Path) -> Tuple[Set[str], Set[str]]:
                     migratable_files.add(str(relpath))
                 else:
                     migratable_dirs.add(str(relpath))
-            elif overlay_fs.is_opaque_dir(destpath):
+            elif overlay_fs.is_oci_opaque_dir(destpath):
                 logger.debug("is opaque dir: %s", relpath)
                 # Don't descend into this directory, overridden by opaque
                 directories.remove(directory)

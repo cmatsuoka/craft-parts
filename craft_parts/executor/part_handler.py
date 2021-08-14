@@ -453,15 +453,20 @@ class PartHandler:
         migratable_files: Set[str] = set()
         migratable_dirs: Set[str] = set()
 
+        # process layers from top to bottom
         for part in reversed(self._part_list):
             if not part.has_overlay:
                 continue
 
             logger.debug("migrate part %r overlay", part.name)
-            srcdir = str(part.part_layer_dir)
+            srcdir = part.part_layer_dir
             files, dirs = overlays.visible_in_layer(srcdir, destdir)
-            migrate_files(
-                files=files, dirs=dirs, srcdir=srcdir, destdir=str(destdir)
+            files, dirs = migrate_files(
+                files=files,
+                dirs=dirs,
+                srcdir=str(srcdir),
+                destdir=str(destdir),
+                oci_translation=True,
             )
             migratable_files |= files
             migratable_dirs |= dirs
@@ -874,28 +879,3 @@ def _staged_parts_with_overlay(part_list: List[Part]) -> List[Part]:
     """Obtain a list of parts with overlay that have been staged."""
     oparts = parts_with_overlay(part_list=part_list)
     return [p for p in oparts if states.state_file_path(p, Step.STAGE).exists()]
-
-
-def _migrate_whiteouts(
-    omgr: OverlayManager, *, srcdir: Path, destdir: Path
-) -> Set[str]:
-    migratable_whiteouts: Set[str] = set()
-    whiteouts: Set[str] = set()
-
-    for (root, _, files) in os.walk(srcdir, topdown=True):
-        for file_name in files:
-            path = Path(root, file_name)
-            relpath = path.relative_to(srcdir)
-            if overlays.is_whiteout_file(path):
-                logger.debug("whiteout file: %s", relpath)
-                # migrate the whiteout file if it's visible from the top layer
-                if omgr.is_path_visible(srcdir, relpath):
-                    oci_relpath = overlays.oci_whiteout(relpath)
-                    migratable_whiteouts.add(str(relpath))
-                    whiteouts.add(str(oci_relpath))
-
-    migrate_files(
-        files=migratable_whiteouts, dirs=set(), srcdir=str(srcdir), destdir=str(destdir)
-    )
-
-    return whiteouts
