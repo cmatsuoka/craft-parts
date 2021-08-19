@@ -247,17 +247,17 @@ class Part:
     @property
     def overlay_mount_dir(self) -> Path:
         """Return the overlay directory."""
-        return self._dirs.overlay_mount_dir
+        return self._dirs.overlay_dir / "overlay"
 
     @property
     def overlay_packages_dir(self) -> Path:
         """Return the overlay package cache directory."""
-        return self._dirs.overlay_packages_dir
+        return self._dirs.overlay_dir / "packages"
 
     @property
     def overlay_work_dir(self) -> Path:
         """Return the overlay work directory."""
-        return self._dirs.overlay_work_dir
+        return self._dirs.overlay_dir / "work"
 
     @property
     def stage_dir(self) -> Path:
