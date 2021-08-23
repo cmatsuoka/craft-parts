@@ -22,7 +22,7 @@ from typing import Dict, List, Optional, Sequence, Set
 from craft_parts import parts, steps
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import ProjectInfo
-from craft_parts.overlays import compute_layer_hash, load_layer_hash
+from craft_parts.overlays import LayerHash
 from craft_parts.parts import Part, part_list_by_name, sort_parts
 from craft_parts.state_manager import StateManager, states
 from craft_parts.steps import Step
@@ -50,8 +50,12 @@ class Sequencer:
         part_list: List[Part],
         project_info: ProjectInfo,
         ignore_outdated: Optional[List[str]] = None,
-        base_layer_hash: bytes = b"",
+        base_layer_hash: Optional[LayerHash] = None,
     ):
+
+        if not base_layer_hash:
+            base_layer_hash = LayerHash()
+
         self._part_list = sort_parts(part_list)
         self._project_info = project_info
         self._sm = StateManager(
@@ -282,7 +286,7 @@ class Sequencer:
         self._sm.update_state_timestamp(part, step)
 
     def _reapply_layer(
-        self, part: Part, layer_hash: bytes, *, reason: Optional[str] = None
+        self, part: Part, layer_hash: LayerHash, *, reason: Optional[str] = None
     ):
         logger.debug("reapply layer %s: hash=%s", part.name, layer_hash)
         self._layer_state.set_layer_hash(part, layer_hash)
@@ -305,7 +309,7 @@ class Sequencer:
 
     def _ensure_overlay_consistency(
         self, top_part: Part, reason: Optional[str] = None, skip_last: bool = False
-    ) -> bytes:
+    ) -> LayerHash:
         """Make sure overlay step layers are consistent.
 
         The overlay step layers are stacked according to the part order. Each part
@@ -362,7 +366,7 @@ class Sequencer:
         elif step == Step.BUILD:
             # If a part has overlay visibility, rebuild it if overlay changed
             current_overlay_hash = self._layer_state.get_overlay_hash()
-            state_overlay_hash = self._sm.get_overlay_hash(part, step)
+            state_overlay_hash = LayerHash(self._sm.get_overlay_hash(part, step))
 
             if (
                 part in self._overlay_viewers
@@ -375,7 +379,7 @@ class Sequencer:
         elif step == Step.STAGE:
             # If a part declares overlay parameters, restage it if overlay changed
             current_overlay_hash = self._layer_state.get_overlay_hash()
-            state_overlay_hash = self._sm.get_overlay_hash(part, step)
+            state_overlay_hash = LayerHash(self._sm.get_overlay_hash(part, step))
 
             if part.has_overlay and current_overlay_hash != state_overlay_hash:
                 logger.debug("%s:%s has overlay and it changed", part.name, step)
@@ -391,23 +395,23 @@ class LayerStateManager:
     :param part_list: The list of parts in the project.
     """
 
-    def __init__(self, part_list: List[Part], base_layer_hash: bytes):
+    def __init__(self, part_list: List[Part], base_layer_hash: LayerHash):
         self._part_list = part_list
         self._base_layer_hash = base_layer_hash
 
-        self._layer_hash: Dict[str, bytes] = dict()
+        self._layer_hash: Dict[str, LayerHash] = dict()
         for part in part_list:
-            self.set_layer_hash(part, load_layer_hash(part))
+            self.set_layer_hash(part, LayerHash.load(part))
 
-    def get_layer_hash(self, part: Part) -> bytes:
+    def get_layer_hash(self, part: Part) -> LayerHash:
         """Obtain the layer hash for the given part."""
-        return self._layer_hash.get(part.name, b"")
+        return self._layer_hash.get(part.name, LayerHash())
 
-    def set_layer_hash(self, part: Part, hash_bytes: bytes) -> None:
+    def set_layer_hash(self, part: Part, layer_hash: LayerHash) -> None:
         """Store the value of the layer hash for the given part."""
-        self._layer_hash[part.name] = hash_bytes
+        self._layer_hash[part.name] = layer_hash
 
-    def current_layer_hash(self, part: Part) -> bytes:
+    def current_layer_hash(self, part: Part) -> LayerHash:
         """Compute the layer validation hash for the given part.
 
         :param part: The part being processed.
@@ -422,9 +426,9 @@ class LayerStateManager:
         else:
             previous_layer_hash = self._base_layer_hash
 
-        return compute_layer_hash(part, previous_layer_hash)
+        return LayerHash.for_part(part, previous_layer_hash=previous_layer_hash)
 
-    def get_overlay_hash(self) -> bytes:
+    def get_overlay_hash(self) -> LayerHash:
         """Obtain the overlay validation hash."""
         last_part = self._part_list[-1]
         return self.get_layer_hash(last_part)

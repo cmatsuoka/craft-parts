@@ -18,9 +18,9 @@ from pathlib import Path
 
 import pytest
 
-from craft_parts import overlays
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import ProjectInfo
+from craft_parts.overlays import LayerHash
 from craft_parts.parts import Part, PartSpec
 from craft_parts.sequencer import Sequencer
 from craft_parts.state_manager import states
@@ -223,9 +223,8 @@ def test_sequencer_ensure_overlay_consistency_no_run(mocker, new_dir):
     p2 = Part("p2", {})
 
     Path("parts/p1/state").mkdir(parents=True)
-    overlays.save_layer_hash(
-        p1, hash_bytes=bytes.fromhex("da39a3ee5e6b4b0d3255bfef95601890afd80709")
-    )
+    layer_hash = LayerHash(bytes.fromhex("da39a3ee5e6b4b0d3255bfef95601890afd80709"))
+    layer_hash.save(p1)
 
     seq = Sequencer(part_list=[p1, p2], project_info=info)
 
@@ -243,9 +242,8 @@ def test_sequencer_ensure_overlay_consistency_dont_skip_last(mocker, new_dir):
     p2 = Part("p2", {})
 
     Path("parts/p1/state").mkdir(parents=True)
-    overlays.save_layer_hash(
-        p1, hash_bytes=bytes.fromhex("da39a3ee5e6b4b0d3255bfef95601890afd80709")
-    )
+    layer_hash = LayerHash(bytes.fromhex("da39a3ee5e6b4b0d3255bfef95601890afd80709"))
+    layer_hash.save(p1)
 
     seq = Sequencer(part_list=[p1, p2], project_info=info)
 

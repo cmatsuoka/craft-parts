@@ -29,7 +29,12 @@ import yaml
 from craft_parts import callbacks, errors, overlays, packages, plugins, sources
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, StepInfo
-from craft_parts.overlays import LayerMounter, OverlayManager, PackageCacheMounter
+from craft_parts.overlays import (
+    LayerHash,
+    LayerMounter,
+    OverlayManager,
+    PackageCacheMounter,
+)
 from craft_parts.packages import errors as packages_errors
 from craft_parts.parts import Part, has_overlay_visibility, parts_with_overlay
 from craft_parts.plugins import Plugin
@@ -60,8 +65,11 @@ class PartHandler:
         part_list: List[Part],
         overlay_manager: OverlayManager,
         ignore_patterns: Optional[List[str]] = None,
-        base_layer_hash: bytes = b"",
+        base_layer_hash: Optional[LayerHash] = None,
     ):
+        if not base_layer_hash:
+            base_layer_hash = LayerHash()
+
         self._part = part
         self._part_info = part_info
         self._part_list = part_list
@@ -170,7 +178,7 @@ class PartHandler:
         _apply_file_filter(filter_files=files, filter_dirs=dirs, destdir=destdir)
 
         layer_hash = self._compute_layer_hash()
-        overlays.save_layer_hash(self._part, hash_bytes=layer_hash)
+        layer_hash.save(self._part)
 
         return states.OverlayState(
             part_properties=self._part_properties,
@@ -179,11 +187,11 @@ class PartHandler:
             directories=contents.dirs,
         )
 
-    def _compute_layer_hash(self, *, all_parts: bool = False) -> bytes:
+    def _compute_layer_hash(self, *, all_parts: bool = False) -> LayerHash:
         part_hash = self._base_layer_hash
 
         for part in self._part_list:
-            part_hash = overlays.compute_layer_hash(part, part_hash)
+            part_hash = LayerHash.for_part(part, previous_layer_hash=part_hash)
             if not all_parts and part.name == self._part.name:
                 break
 

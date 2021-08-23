@@ -16,6 +16,7 @@
 
 """Overlay filesystem management."""
 
+from .layer_hash import LayerHash  # noqa: F401
 from .overlay_fs import is_opaque_dir  # noqa: F401
 from .overlay_fs import is_whiteout_file  # noqa: F401
 from .overlay_fs import oci_opaque_dir  # noqa: F401
@@ -24,7 +25,4 @@ from .overlay_manager import LayerMounter  # noqa: F401
 from .overlay_manager import OverlayManager  # noqa: F401
 from .overlay_manager import OverlayMigrationMounter  # noqa: F401
 from .overlay_manager import PackageCacheMounter  # noqa: F401
-from .overlays import compute_layer_hash  # noqa: F401
-from .overlays import load_layer_hash  # noqa: F401
-from .overlays import save_layer_hash  # noqa: F401
 from .overlays import visible_in_layer  # noqa: F401

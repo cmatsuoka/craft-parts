@@ -25,7 +25,7 @@ from typing import Dict, List, Optional, Union
 from craft_parts import callbacks, packages, parts
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, ProjectInfo
-from craft_parts.overlays import OverlayManager, PackageCacheMounter
+from craft_parts.overlays import LayerHash, OverlayManager, PackageCacheMounter
 from craft_parts.parts import Part, sort_parts
 from craft_parts.steps import Step
 from craft_parts.utils import os_utils
@@ -61,8 +61,11 @@ class Executor:
         extra_build_snaps: List[str] = None,
         ignore_patterns: List[str] = None,
         base_layer_dir: Optional[Path] = None,
-        base_layer_hash: bytes = b"",
+        base_layer_hash: Optional[LayerHash] = None,
     ):
+        if not base_layer_hash:
+            base_layer_hash = LayerHash()
+
         self._part_list = sort_parts(part_list)
         self._project_info = project_info
         self._extra_build_packages = extra_build_packages

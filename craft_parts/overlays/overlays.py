@@ -16,67 +16,14 @@
 
 """The overlay manager and helpers."""
 
-import hashlib
 import logging
 import os
 from pathlib import Path
 from typing import Set, Tuple
 
-from craft_parts.parts import Part
-
 from . import overlay_fs
 
 logger = logging.getLogger(__name__)
-
-
-def compute_layer_hash(part: Part, previous_layer_hash: bytes) -> bytes:
-    """Obtain the validation hash for a part.
-
-    :param part: The part being processed.
-    :param previous_layer_hash: The validation hash of the previous
-        layer in the overlay stack.
-
-    :return: The validaton hash of the layer corresponding to the
-        given part.
-    """
-    hasher = hashlib.sha1()
-
-    for entry in part.spec.overlay_packages:
-        hasher.update(entry.encode())
-
-    if part.spec.overlay_script:
-        hasher.update(part.spec.overlay_script.encode())
-
-    hasher.update(previous_layer_hash)
-
-    return hasher.digest()
-
-
-def load_layer_hash(part: Part) -> bytes:
-    """Read the part layer validation hash from persistent state.
-
-    :param part: The part whose layer hash will be loaded.
-
-    :return: The validaton hash of the layer corresponding to the
-        given part, or None if there's no previous state.
-    """
-    hash_file = part.part_state_dir / "layer_hash"
-    if not hash_file.exists():
-        return b""
-
-    with open(hash_file) as file:
-        hex_string = file.readline()
-
-    return bytes.fromhex(hex_string)
-
-
-def save_layer_hash(part: Part, *, hash_bytes: bytes) -> None:
-    """Save the part layer validation hash to persistent storage.
-
-    :param part: The part whose layer hash will be saved.
-    """
-    hash_file = part.part_state_dir / "layer_hash"
-    hash_file.write_text(hash_bytes.hex())
 
 
 def visible_in_layer(srcdir: Path, destdir: Path) -> Tuple[Set[str], Set[str]]:

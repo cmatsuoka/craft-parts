@@ -26,6 +26,7 @@ from craft_parts import errors, executor, packages, plugins, sequencer
 from craft_parts.actions import Action
 from craft_parts.dirs import ProjectDirs
 from craft_parts.infos import ProjectInfo
+from craft_parts.overlays import LayerHash
 from craft_parts.parts import Part
 from craft_parts.steps import Step
 
@@ -131,7 +132,7 @@ class LifecycleManager:
             part_list=self._part_list,
             project_info=project_info,
             ignore_outdated=ignore_local_sources,
-            base_layer_hash=base_layer_hash,
+            base_layer_hash=LayerHash(base_layer_hash),
         )
         self._executor = executor.Executor(
             part_list=self._part_list,
@@ -139,7 +140,7 @@ class LifecycleManager:
             ignore_patterns=ignore_local_sources,
             extra_build_packages=extra_build_packages,
             base_layer_dir=base_layer_dir,
-            base_layer_hash=base_layer_hash,
+            base_layer_hash=LayerHash(base_layer_hash),
         )
         self._project_info = project_info
 
