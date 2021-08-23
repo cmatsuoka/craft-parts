@@ -81,8 +81,8 @@ class OverlayManager:
         self._overlay_fs = OverlayFS(
             lower_dir=lowers,
             upper_dir=upper,
-            work_dir=part.overlay_work_dir,
-            mountpoint=part.overlay_mount_dir,
+            work_dir=self._project_info.overlay_work_dir,
+            mountpoint=self._project_info.overlay_mount_dir,
         )
 
         self._overlay_fs.mount()
