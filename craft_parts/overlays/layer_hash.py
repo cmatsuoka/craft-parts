@@ -18,6 +18,7 @@
 
 import hashlib
 import logging
+from typing import Optional
 
 from craft_parts.parts import Part
 
@@ -54,7 +55,7 @@ class LayerHash:
         return cls(hasher.digest())
 
     @classmethod
-    def load(cls, part: Part) -> "LayerHash":
+    def load(cls, part: Part) -> Optional["LayerHash"]:
         """Read the part layer validation hash from persistent state.
 
         :param part: The part whose layer hash will be loaded.

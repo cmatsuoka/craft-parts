@@ -401,7 +401,10 @@ class LayerStateManager:
 
         self._layer_hash: Dict[str, LayerHash] = dict()
         for part in part_list:
-            self.set_layer_hash(part, LayerHash.load(part))
+            lhash = LayerHash.load(part)
+            if lhash is None:
+                lhash = LayerHash(b"")
+            self.set_layer_hash(part, lhash)
 
     def get_layer_hash(self, part: Part) -> LayerHash:
         """Obtain the layer hash for the given part."""
