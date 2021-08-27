@@ -213,17 +213,16 @@ def test_sequencer_ensure_overlay_consistency(mocker, new_dir):
             ),
         ]
     )
-    assert value.hex() == "be1bdec0aa74b4dcb079943e70528096cca985f8"
+    assert value.hex() == "8d9f437db97f7276a2d68fc44683b6761035f73c"
 
 
-@pytest.mark.usefixtures("new_dir")
 def test_sequencer_ensure_overlay_consistency_no_run(mocker, new_dir):
     info = ProjectInfo(arch="aarch64", application_name="test", cache_dir=new_dir)
     p1 = Part("p1", {})
     p2 = Part("p2", {})
 
     Path("parts/p1/state").mkdir(parents=True)
-    layer_hash = LayerHash(bytes.fromhex("da39a3ee5e6b4b0d3255bfef95601890afd80709"))
+    layer_hash = LayerHash(bytes.fromhex("6554e32fa718d54160d0511b36f81458e4cb2357"))
     layer_hash.save(p1)
 
     seq = Sequencer(part_list=[p1, p2], project_info=info)
@@ -232,17 +231,16 @@ def test_sequencer_ensure_overlay_consistency_no_run(mocker, new_dir):
 
     value = seq._ensure_overlay_consistency(p2, skip_last=True)
     mock_add_all_actions.assert_not_called()
-    assert value.hex() == "be1bdec0aa74b4dcb079943e70528096cca985f8"
+    assert value.hex() == "8d9f437db97f7276a2d68fc44683b6761035f73c"
 
 
-@pytest.mark.usefixtures("new_dir")
 def test_sequencer_ensure_overlay_consistency_dont_skip_last(mocker, new_dir):
     info = ProjectInfo(arch="aarch64", application_name="test", cache_dir=new_dir)
     p1 = Part("p1", {})
     p2 = Part("p2", {})
 
     Path("parts/p1/state").mkdir(parents=True)
-    layer_hash = LayerHash(bytes.fromhex("da39a3ee5e6b4b0d3255bfef95601890afd80709"))
+    layer_hash = LayerHash(bytes.fromhex("6554e32fa718d54160d0511b36f81458e4cb2357"))
     layer_hash.save(p1)
 
     seq = Sequencer(part_list=[p1, p2], project_info=info)
@@ -255,7 +253,7 @@ def test_sequencer_ensure_overlay_consistency_dont_skip_last(mocker, new_dir):
         part_names=["p2"],
         reason=None,
     )
-    assert value.hex() == "be1bdec0aa74b4dcb079943e70528096cca985f8"
+    assert value.hex() == "8d9f437db97f7276a2d68fc44683b6761035f73c"
 
 
 @pytest.mark.usefixtures("new_dir")
@@ -283,4 +281,4 @@ def test_sequencer_ensure_overlay_consistency_rerun(mocker, new_dir):
         part_names=["p1"],
         reason="it is your destiny",
     )
-    assert value.hex() == "be1bdec0aa74b4dcb079943e70528096cca985f8"
+    assert value.hex() == "8d9f437db97f7276a2d68fc44683b6761035f73c"

@@ -63,9 +63,6 @@ class Executor:
         base_layer_dir: Optional[Path] = None,
         base_layer_hash: Optional[LayerHash] = None,
     ):
-        if not base_layer_hash:
-            base_layer_hash = LayerHash()
-
         self._part_list = sort_parts(part_list)
         self._project_info = project_info
         self._extra_build_packages = extra_build_packages

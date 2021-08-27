@@ -67,9 +67,6 @@ class PartHandler:
         ignore_patterns: Optional[List[str]] = None,
         base_layer_hash: Optional[LayerHash] = None,
     ):
-        if not base_layer_hash:
-            base_layer_hash = LayerHash()
-
         self._part = part
         self._part_info = part_info
         self._part_list = part_list
@@ -158,24 +155,27 @@ class PartHandler:
     def _run_overlay(self, step_info: StepInfo) -> StepState:
         self._make_dirs()
 
-        # must be in a separate context manager to work around pychroot process leak
-        with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
-            self._install_overlay_packages(ctx)
+        if self._part.has_overlay:
+            # must be in a separate context manager to work around pychroot process leak
+            with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
+                self._install_overlay_packages(ctx)
 
-        with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
-            contents = self._run_step(
-                step_info=step_info,
-                scriptlet_name="overlay-script",
-                work_dir=self._part.part_layer_dir,
+            with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
+                contents = self._run_step(
+                    step_info=step_info,
+                    scriptlet_name="overlay-script",
+                    work_dir=self._part.part_layer_dir,
+                )
+
+            # apply overlay filter
+            overlay_fileset = filesets.Fileset(
+                self._part.spec.overlay_files, name="overlay"
             )
-
-        # apply overlay filter
-        overlay_fileset = filesets.Fileset(
-            self._part.spec.overlay_files, name="overlay"
-        )
-        destdir = self._part.part_layer_dir
-        files, dirs = filesets.migratable_filesets(overlay_fileset, str(destdir))
-        _apply_file_filter(filter_files=files, filter_dirs=dirs, destdir=destdir)
+            destdir = self._part.part_layer_dir
+            files, dirs = filesets.migratable_filesets(overlay_fileset, str(destdir))
+            _apply_file_filter(filter_files=files, filter_dirs=dirs, destdir=destdir)
+        else:
+            contents = StepContents()
 
         layer_hash = self._compute_layer_hash()
         layer_hash.save(self._part)
@@ -194,6 +194,9 @@ class PartHandler:
             part_hash = LayerHash.for_part(part, previous_layer_hash=part_hash)
             if not all_parts and part.name == self._part.name:
                 break
+
+        if not part_hash:
+            raise RuntimeError("could not compute layer hash")
 
         return part_hash
 

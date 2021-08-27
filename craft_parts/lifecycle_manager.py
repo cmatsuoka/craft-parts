@@ -80,7 +80,7 @@ class LifecycleManager:
         ignore_local_sources: Optional[List[str]] = None,
         extra_build_packages: Optional[List[str]] = None,
         base_layer_dir: Optional[Path] = None,
-        base_layer_hash: bytes = b"",
+        base_layer_hash: Optional[bytes] = None,
         **custom_args,  # custom passthrough args
     ):
         if not re.match("^[A-Za-z][0-9A-Za-z_]*$", application_name):
@@ -126,13 +126,18 @@ class LifecycleManager:
         else:
             base_layer_dir = None
 
+        if base_layer_hash:
+            layer_hash: Optional[LayerHash] = LayerHash(base_layer_hash)
+        else:
+            layer_hash = None
+
         self._application_name = application_name
         self._target_arch = project_info.target_arch
         self._sequencer = sequencer.Sequencer(
             part_list=self._part_list,
             project_info=project_info,
             ignore_outdated=ignore_local_sources,
-            base_layer_hash=LayerHash(base_layer_hash),
+            base_layer_hash=layer_hash,
         )
         self._executor = executor.Executor(
             part_list=self._part_list,
@@ -140,7 +145,7 @@ class LifecycleManager:
             ignore_patterns=ignore_local_sources,
             extra_build_packages=extra_build_packages,
             base_layer_dir=base_layer_dir,
-            base_layer_hash=LayerHash(base_layer_hash),
+            base_layer_hash=layer_hash,
         )
         self._project_info = project_info
 

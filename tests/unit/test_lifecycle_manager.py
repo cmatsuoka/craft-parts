@@ -23,7 +23,6 @@ import yaml
 
 from craft_parts import errors
 from craft_parts.lifecycle_manager import LifecycleManager
-from craft_parts.overlays import LayerHash
 from craft_parts.plugins import nil_plugin
 
 
@@ -108,7 +107,7 @@ class TestLifecycleManager:
             part_list=lf._part_list,
             project_info=lf.project_info,
             ignore_outdated=["foo.*"],
-            base_layer_hash=LayerHash(),
+            base_layer_hash=None,
         )
 
 

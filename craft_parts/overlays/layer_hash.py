@@ -28,14 +28,18 @@ logger = logging.getLogger(__name__)
 class LayerHash:
     """The overlay validation hash for a part."""
 
-    def __init__(self, layer_hash: bytes = b""):  # pylint: disable=E0601
-        self._hash_bytes = layer_hash
+    def __init__(self, layer_hash: bytes):
+        self.hash_bytes = layer_hash
 
     def __eq__(self, other):
-        return self._hash_bytes == other._hash_bytes
+        if not isinstance(other, LayerHash):
+            return False
+        return self.hash_bytes == other.hash_bytes
 
     @classmethod
-    def for_part(cls, part: Part, *, previous_layer_hash: "LayerHash") -> "LayerHash":
+    def for_part(
+        cls, part: Part, *, previous_layer_hash: Optional["LayerHash"]
+    ) -> "LayerHash":
         """Obtain the validation hash for a part.
 
         :param part: The part being processed.
@@ -43,15 +47,22 @@ class LayerHash:
             layer in the overlay stack.
         """
         hasher = hashlib.sha1()
-
+        if previous_layer_hash:
+            hasher.update(previous_layer_hash.hash_bytes)
         for entry in part.spec.overlay_packages:
             hasher.update(entry.encode())
+        digest = hasher.digest()
 
+        hasher = hashlib.sha1()
+        hasher.update(digest)
+        for entry in part.spec.overlay_files:
+            hasher.update(entry.encode())
+        digest = hasher.digest()
+
+        hasher = hashlib.sha1()
+        hasher.update(digest)
         if part.spec.overlay_script:
             hasher.update(part.spec.overlay_script.encode())
-
-        hasher.update(previous_layer_hash.bytes())
-
         return cls(hasher.digest())
 
     @classmethod
@@ -65,7 +76,7 @@ class LayerHash:
         """
         hash_file = part.part_state_dir / "layer_hash"
         if not hash_file.exists():
-            return cls()
+            return None
 
         with open(hash_file) as file:
             hex_string = file.readline()
@@ -80,10 +91,6 @@ class LayerHash:
         hash_file = part.part_state_dir / "layer_hash"
         hash_file.write_text(self.hex())
 
-    def bytes(self) -> bytes:
-        """Return the current hash as bytes."""
-        return self._hash_bytes
-
     def hex(self) -> str:
         """Return the current hash as a hexadecimal string."""
-        return self._hash_bytes.hex()
+        return self.hash_bytes.hex()
