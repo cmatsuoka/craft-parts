@@ -180,8 +180,6 @@ def test_main_application_name(new_dir, mocker, capfd):
     )
     Path("parts.yaml").write_text(my_parts_yaml)
 
-    mock_update = mocker.patch("craft_parts.packages.apt_cache.AptCache.update")
-
     mocker.patch.object(
         sys, "argv", ["cmd", "--application-name", "znapcraft", "--refresh", "pull"]
     )
@@ -210,8 +208,6 @@ def test_main_application_name(new_dir, mocker, capfd):
     # check cache location
     assert Path(".cache/craft-parts/stage-packages").is_dir()
 
-    mock_update.assert_called_with()
-
 
 def test_main_invalid_application_name(mocker):
     Path("parts.yaml").write_text(parts_yaml)
@@ -228,8 +224,6 @@ def test_main_invalid_application_name(mocker):
 def test_main_cache_dir(new_dir, mocker):
     Path("parts.yaml").write_text(parts_yaml)
 
-    mock_update = mocker.patch("craft_parts.packages.apt_cache.AptCache.update")
-
     mocker.patch.object(
         sys, "argv", ["cmd", "--dry-run", "--cache-dir", "cache_dir", "--refresh"]
     )
@@ -239,8 +233,6 @@ def test_main_cache_dir(new_dir, mocker):
 
     # check cache location
     assert Path("cache_dir/stage-packages").is_dir()
-
-    mock_update.assert_called_with()
 
 
 def test_main_alternative_work_dir(mocker, capfd):
@@ -293,8 +285,6 @@ def test_main_alternative_parts_invalid_file(mocker, capfd):
 def test_main_refresh(new_dir, mocker, capfd):
     Path("parts.yaml").write_text(parts_yaml)
 
-    mock_update = mocker.patch("craft_parts.packages.apt_cache.AptCache.update")
-
     mocker.patch.object(sys, "argv", ["cmd", "--dry-run", "--refresh"])
     with pytest.raises(SystemExit) as raised:
         main.main()
@@ -306,8 +296,6 @@ def test_main_refresh(new_dir, mocker, capfd):
 
     # check cache location
     assert Path(".cache/craft-parts/stage-packages").is_dir()
-
-    mock_update.assert_called_with()
 
 
 @pytest.mark.parametrize(
