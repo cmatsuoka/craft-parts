@@ -22,7 +22,7 @@ from typing import Dict, List, Optional, Sequence, Set
 from craft_parts import parts, steps
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import ProjectInfo
-from craft_parts.overlays import LayerHash
+from craft_parts.overlays import LayerHash, LayerStateManager
 from craft_parts.parts import Part, part_list_by_name, sort_parts
 from craft_parts.state_manager import StateManager, states
 from craft_parts.steps import Step
@@ -326,7 +326,7 @@ class Sequencer:
             raise ValueError(f"part {top_part!r} not in parts list")
 
         for part in self._part_list:
-            layer_hash = self._layer_state.current_layer_hash(part)
+            layer_hash = self._layer_state.compute_layer_hash(part)
 
             if skip_last and part.name == top_part.name:
                 return layer_hash
@@ -350,7 +350,7 @@ class Sequencer:
     def _check_if_dirty_on_overlay(self, part: Part, step: Step) -> bool:
         if step == Step.OVERLAY:
             # Layers depend on the integrity of its validation hash
-            current_layer_hash = self._layer_state.current_layer_hash(part)
+            current_layer_hash = self._layer_state.compute_layer_hash(part)
             state_layer_hash = self._layer_state.get_layer_hash(part)
             if current_layer_hash != state_layer_hash:
                 logger.debug("%s:%s changed layer hash", part.name, step)
@@ -383,54 +383,6 @@ class Sequencer:
                 return True
 
         return False
-
-
-class LayerStateManager:
-    """The layer stack state manager.
-
-    :param part_list: The list of parts in the project.
-    """
-
-    def __init__(self, part_list: List[Part], base_layer_hash: Optional[LayerHash]):
-        self._part_list = part_list
-        self._base_layer_hash = base_layer_hash
-
-        self._layer_hash: Dict[str, Optional[LayerHash]] = dict()
-        for part in part_list:
-            self.set_layer_hash(part, LayerHash.load(part))
-
-    def get_layer_hash(self, part: Part) -> Optional[LayerHash]:
-        """Obtain the layer hash for the given part."""
-        return self._layer_hash.get(part.name)
-
-    def set_layer_hash(self, part: Part, layer_hash: Optional[LayerHash]) -> None:
-        """Store the value of the layer hash for the given part."""
-        self._layer_hash[part.name] = layer_hash
-
-    def current_layer_hash(self, part: Part) -> LayerHash:
-        """Compute the layer validation hash for the given part.
-
-        :param part: The part being processed.
-
-        :return: The validation hash of the layer corresponding to the
-            given part.
-        """
-        index = self._part_list.index(part)
-
-        if index > 0:
-            previous_layer_hash = self.get_layer_hash(self._part_list[index - 1])
-        else:
-            previous_layer_hash = self._base_layer_hash
-
-        return LayerHash.for_part(part, previous_layer_hash=previous_layer_hash)
-
-    def get_overlay_hash(self) -> bytes:
-        """Obtain the overlay validation hash."""
-        last_part = self._part_list[-1]
-        overlay_hash = self.get_layer_hash(last_part)
-        if not overlay_hash:
-            return b""
-        return overlay_hash.hash_bytes
 
 
 _step_verb: Dict[Step, str] = {
