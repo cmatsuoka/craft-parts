@@ -624,7 +624,7 @@ class PartHandler:
 
         try:
             with PackageCacheMounter(self._overlay_manager) as ctx:
-                ctx.fetch_packages(overlay_packages)
+                ctx.download_packages(overlay_packages)
         except packages_errors.PackageNotFound as err:
             raise errors.OverlayPackageNotFound(
                 part_name=self._part.name, package_name=err.package_name

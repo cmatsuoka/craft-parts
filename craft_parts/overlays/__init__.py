@@ -24,6 +24,5 @@ from .overlay_fs import oci_opaque_dir  # noqa: F401
 from .overlay_fs import oci_whiteout  # noqa: F401
 from .overlay_manager import LayerMounter  # noqa: F401
 from .overlay_manager import OverlayManager  # noqa: F401
-from .overlay_manager import OverlayMigrationMounter  # noqa: F401
 from .overlay_manager import PackageCacheMounter  # noqa: F401
 from .overlays import visible_in_layer  # noqa: F401
