@@ -250,6 +250,10 @@ class PartHandler:
         }
         assets.update(_get_machine_manifest())
 
+        # Overlay integrity is checked based by the hash of its last (topmost) layer,
+        # so we compute it for all parts. The overlay hash is added to the build state
+        # to ensure proper build step invalidation of parts that can see the overlay
+        # filesystem if overlay contents change.
         overlay_hash = self._compute_layer_hash(all_parts=True)
 
         state = states.BuildState(
@@ -271,6 +275,10 @@ class PartHandler:
 
         self._stage_overlay()
 
+        # Overlay integrity is checked based by the hash of its last (topmost) layer,
+        # so we compute it for all parts. The overlay hash is added to the stage state
+        # to ensure proper stage step invalidation of parts that declare overlay
+        # parameters if overlay contents change.
         overlay_hash = self._compute_layer_hash(all_parts=True)
 
         state = states.StageState(
