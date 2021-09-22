@@ -74,13 +74,12 @@ class OverlayManager:
         lowers.reverse()
 
         self._overlay_fs = OverlayFS(
-            lower_dir=lowers,
+            lower_dirs=lowers,
             upper_dir=upper,
             work_dir=self._project_info.overlay_work_dir,
-            mountpoint=self._project_info.overlay_mount_dir,
         )
 
-        self._overlay_fs.mount()
+        self._overlay_fs.mount(self._project_info.overlay_mount_dir)
 
     def mount_pkg_cache(self) -> None:
         """Mount the overlay step package cache layer."""
@@ -88,13 +87,12 @@ class OverlayManager:
             return
 
         self._overlay_fs = OverlayFS(
-            lower_dir=self._base_layer_dir,
+            lower_dirs=[self._base_layer_dir],
             upper_dir=self._project_info.overlay_packages_dir,
             work_dir=self._project_info.overlay_work_dir,
-            mountpoint=self._project_info.overlay_mount_dir,
         )
 
-        self._overlay_fs.mount()
+        self._overlay_fs.mount(self._project_info.overlay_mount_dir)
 
     def unmount(self) -> None:
         """Unmount the overlay step layer stack."""

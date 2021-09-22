@@ -25,15 +25,25 @@ from pydantic_yaml import YamlModel  # type: ignore
 from craft_parts.utils import os_utils
 
 
-class State(YamlModel, ABC):
-    """Migrated file and directory information."""
+class MigrationState(YamlModel):
+    """State information collected when migrating steps.
+
+    The migration state contains the paths to the files and directories
+    that have been migrated. This information is used to remove migrated
+    files from shared areas on step cleanup.
+    """
 
     files: Set[str] = set()
     directories: Set[str] = set()
 
     @classmethod
-    def unmarshal(cls, data: Dict[str, Any]):
-        """Create and populate a new state object from dictionary data."""
+    def unmarshal(cls, data: Dict[str, Any]) -> "MigrationState":
+        """Create and populate a new state object from dictionary data.
+
+        :param data: A dictionary containing the data to unmarshal.
+
+        :returns: The state object containing the migration data.
+        """
         return cls(**data)
 
     def marshal(self) -> Dict[str, Any]:
@@ -44,13 +54,16 @@ class State(YamlModel, ABC):
         return self.dict(by_alias=True)
 
     def write(self, filepath: Path) -> None:
-        """Write this state to disk."""
+        """Write state data to disk.
+
+        :param filepath: The path to the file to write.
+        """
         filepath.parent.mkdir(parents=True, exist_ok=True)
         yaml_data = self.yaml(by_alias=True)
         os_utils.TimedWriter.write_text(filepath, yaml_data)
 
 
-class StepState(State, ABC):
+class StepState(MigrationState, ABC):
     """Contextual information collected when a step is executed.
 
     The step state contains environmental and project-specific configuration
@@ -69,11 +82,6 @@ class StepState(State, ABC):
         allow_mutation = False
         alias_generator = lambda s: s.replace("_", "-")  # noqa: E731
         allow_population_by_field_name = True
-
-    @classmethod
-    def unmarshal(cls, data: Dict[str, Any]):
-        """Create and populate a new state object from dictionary data."""
-        raise RuntimeError("this must be implemented by the step-specific class.")
 
     @abstractmethod
     def properties_of_interest(self, part_properties: Dict[str, Any]) -> Dict[str, Any]:
@@ -119,6 +127,11 @@ class StepState(State, ABC):
             self.project_options_of_interest(other_project_options),
         )
 
+    @classmethod
+    def unmarshal(cls, data: Dict[str, Any]):
+        """Create and populate a new state object from dictionary data."""
+        raise RuntimeError("this must be implemented by the step-specific class.")
+
 
 def _get_differing_keys(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Set[str]:
     """Return the keys of dictionary entries with different values.
@@ -139,3 +152,10 @@ def _get_differing_keys(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Set[str
             differing_keys.add(key)
 
     return differing_keys
+
+
+def validate_hex_string(value: str) -> str:
+    """Ensure that a pydantic model field is hexadecimal string."""
+    if value:
+        bytes.fromhex(value)
+    return value
