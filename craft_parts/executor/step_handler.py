@@ -339,10 +339,10 @@ def migrate_files(
         migrated_dirs.add(dirname)
 
         if oci_translation and overlays.is_opaque_dir(Path(src)):
-            oci_opaque_marker = overlays.oci_opaque_dir(dirname)
+            oci_opaque_marker = overlays.oci_opaque_dir(Path(dirname))
             oci_dst = Path(destdir, oci_opaque_marker)
             oci_dst.touch()
-            migrated_files.add(oci_opaque_marker)
+            migrated_files.add(str(oci_opaque_marker))
 
     for filename in files:
         src = os.path.join(srcdir, filename)
@@ -360,10 +360,10 @@ def migrate_files(
             os.remove(dst)
 
         if oci_translation and overlays.is_whiteout_file(Path(src)):
-            oci_whiteout = overlays.oci_whiteout(filename)
+            oci_whiteout = overlays.oci_whiteout(Path(filename))
             oci_dst = Path(destdir, oci_whiteout)
             oci_dst.touch()
-            migrated_files.add(oci_whiteout)
+            migrated_files.add(str(oci_whiteout))
         else:
             file_utils.link_or_copy(src, dst, follow_symlinks=follow_symlinks)
             fixup_func(dst)

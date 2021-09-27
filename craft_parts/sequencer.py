@@ -59,7 +59,6 @@ class Sequencer:
             part_list=part_list,
             ignore_outdated=ignore_outdated,
         )
-        self._sm = StateManager(project_info=project_info, part_list=self._part_list)
         self._layer_state = LayerStateManager(self._part_list, base_layer_hash)
         self._actions: List[Action] = []
 
@@ -101,7 +100,6 @@ class Sequencer:
         for current_step in target_step.previous_steps() + [target_step]:
             for part in selected_parts:
                 logger.debug("process %s:%s", part.name, current_step)
-
                 self._add_step_actions(
                     current_step=current_step,
                     target_step=target_step,

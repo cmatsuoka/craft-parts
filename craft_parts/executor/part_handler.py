@@ -24,8 +24,6 @@ from glob import iglob
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set
 
-import yaml
-
 from craft_parts import callbacks, errors, overlays, packages, plugins, sources
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, StepInfo
@@ -36,7 +34,7 @@ from craft_parts.overlays import (
     PackageCacheMounter,
 )
 from craft_parts.packages import errors as packages_errors
-from craft_parts.parts import Part, has_overlay_visibility, get_parts_with_overlay
+from craft_parts.parts import Part, get_parts_with_overlay, has_overlay_visibility
 from craft_parts.plugins import Plugin
 from craft_parts.state_manager import MigrationState, StepState, states
 from craft_parts.steps import Step
@@ -44,7 +42,7 @@ from craft_parts.utils import file_utils, os_utils
 
 from . import filesets, migration
 from .organize import organize_files
-from .step_handler import StepContents, StepHandler, migrate_files
+from .step_handler import StepContents, StepHandler
 
 logger = logging.getLogger(__name__)
 
@@ -353,7 +351,7 @@ class PartHandler:
 
         callbacks.run_pre_step(step_info)
         handler(step_info)
-        state_file = states.state_file_path(self._part, action.step)
+        state_file = states.get_step_state_path(self._part, action.step)
         state_file.touch()
         callbacks.run_post_step(step_info)
 
@@ -387,7 +385,7 @@ class PartHandler:
 
         # the update action is sequenced only if an update is required and the
         # source knows how to update
-        state_file = states.state_file_path(self._part, step_info.step)
+        state_file = states.get_step_state_path(self._part, step_info.step)
         self._source_handler.check_if_outdated(str(state_file))
         self._source_handler.update()
 
@@ -423,7 +421,7 @@ class PartHandler:
                 copy_function=file_utils.copy,
                 cache_dir=step_info.cache_dir,
             )
-            state_file = states.state_file_path(self._part, step_info.step)
+            state_file = states.get_step_state_path(self._part, step_info.step)
             source.check_if_outdated(str(state_file))  # required by source.update()
             source.update()
 
