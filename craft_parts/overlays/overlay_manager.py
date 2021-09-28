@@ -16,7 +16,6 @@
 
 """Layer management helpers."""
 
-import contextlib
 import logging
 import os
 import shutil
@@ -24,13 +23,11 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-import pychroot  # type: ignore
-
 from craft_parts import packages
 from craft_parts.infos import ProjectInfo
 from craft_parts.parts import Part
 
-# from . import overlay_fs
+from . import chroot
 from .overlay_fs import OverlayFS
 
 logger = logging.getLogger(__name__)
@@ -116,25 +113,9 @@ class OverlayManager:
             return
 
         self._fix_resolv_conf()
-
-        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_mount_dir):
-            packages.Repository.refresh_build_packages_list()
-
-    # def is_path_visible(self, target_layer_dir: Path, relpath: Path) -> bool:
-    #     """Verify if the given relative path is not whited out."""
-    #    logger.debug(
-    #        "check if path is visible: target_layer_dir=%s, relpath=%s",
-    #        target_layer_dir,
-    #        relpath,
-    #    )
-    #    for layer_dir in reversed(self._layer_dirs):
-    #        if layer_dir == target_layer_dir:
-    #            return True
-    #        visible = overlay_fs.is_path_visible(layer_dir, relpath)
-    #        if not visible:
-    #            return False
-    #
-    #    return True
+        chroot.chroot(
+            self._overlay_mount_dir, packages.Repository.refresh_build_packages_list
+        )
 
     def download_packages(self, package_names: List[str]) -> None:
         """Update the list of available packages in the overlay system."""
@@ -146,9 +127,9 @@ class OverlayManager:
             return
 
         self._fix_resolv_conf()
-
-        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_mount_dir):
-            packages.Repository.fetch_packages(package_names)
+        chroot.chroot(
+            self._overlay_mount_dir, packages.Repository.fetch_packages, package_names
+        )
 
     def install_packages(self, package_names: List[str]) -> None:
         """Update the list of available packages in the overlay system."""
@@ -160,10 +141,7 @@ class OverlayManager:
             return
 
         self._fix_resolv_conf()
-
-        with contextlib.suppress(SystemExit), pychroot.Chroot(self._overlay_mount_dir):
-            packages.Repository.install_build_packages(package_names)
-            shutil.rmtree("/var/cache", ignore_errors=True)
+        chroot.chroot(self._overlay_mount_dir, packages.Repository.install_build_packages, package_names)
 
     def mkdirs(self) -> None:
         """Create overlay directories and mountpoints."""
@@ -240,33 +218,3 @@ class LayerMounter:
     def install_packages(self, package_names: List[str]) -> None:
         """Install the specified packages on the local system."""
         self._overlay_manager.install_packages(package_names)
-
-
-# class OverlayMigrationMounter:
-#    """Mount and umount the overlay layer stack."""
-#
-#    def __init__(
-#        self,
-#        overlay_manager: OverlayManager,
-#        top_part: Part,
-#    ):
-#        self._overlay_manager = overlay_manager
-#        self._overlay_manager.mkdirs()
-#        self._top_part = top_part
-#        self._pid = os.getpid()
-#        self._empty_dir: tempfile.TemporaryDirectory
-#
-#    def __enter__(self):
-#        self._empty_dir = tempfile.TemporaryDirectory()
-#        self._overlay_manager.mount_layer(
-#            self._top_part, base=Path(self._empty_dir.name), pkg_cache=False
-#        )
-#        return self
-#
-#    def __exit__(self, exc_type, exc_value, exc_traceback):
-#        if os.getpid() != self._pid:
-#            sys.exit()
-#        self._overlay_manager.unmount()
-#        self._empty_dir.cleanup()
-#
-#        return False

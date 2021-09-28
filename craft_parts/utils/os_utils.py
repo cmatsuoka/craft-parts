@@ -233,6 +233,7 @@ def mount(device: str, mountpoint: str, *args) -> None:
     :param mountpoint: Where the device will be mounted.
     :param *args: Additional arguments to ``mount(8)``.
     """
+    logger.debug("mount device=%r, mountpoint=%r, args=%r", device, mountpoint, args)
     subprocess.check_call(["/bin/mount", *args, device, mountpoint])
 
 
@@ -241,6 +242,7 @@ def umount(mountpoint: str) -> None:
 
     :param mountpoint: The mount point or device to unmount.
     """
+    logger.debug("umount mountpoint=%r", mountpoint)
     subprocess.check_call(["/bin/umount", mountpoint])
 
 

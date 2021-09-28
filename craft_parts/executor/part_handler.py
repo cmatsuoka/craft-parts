@@ -158,6 +158,11 @@ class PartHandler:
             with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
                 self._install_overlay_packages(ctx)
 
+            # remove temporary files and package cache from layer
+            shutil.rmtree(self._part.part_layer_dir / "var/cache", ignore_errors=True)
+            shutil.rmtree(self._part.part_layer_dir / "var/tmp", ignore_errors=True)
+            shutil.rmtree(self._part.part_layer_dir / "tmp", ignore_errors=True)
+
             with LayerMounter(self._overlay_manager, top_part=self._part) as ctx:
                 contents = self._run_step(
                     step_info=step_info,
