@@ -811,7 +811,9 @@ def _apply_file_filter(
         for file_name in files:
             path = Path(root, file_name)
             relpath = path.relative_to(destdir)
-            if str(relpath) not in filter_files and not overlays.is_whiteout_file(path):
+            if str(
+                relpath
+            ) not in filter_files and not overlays.OverlayFS.is_whiteout_file(path):
                 logger.debug("delete file: %s", relpath)
                 path.unlink()
 

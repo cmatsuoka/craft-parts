@@ -14,16 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Low level interface to OS overlayfs."""
+"""Overlay filesystem drivers."""
 
-from typing import Type
-
-from .fs_drivers.base import OverlayFSDriver
-from .fs_drivers.overlayfs import OverlayFS as OverlayFS_
-
-
-def _get_overlay_fs_driver() -> Type[OverlayFSDriver]:
-    return OverlayFS_
-
-
-OverlayFS = _get_overlay_fs_driver()
+from .base import OverlayFSDriver  # noqa: F401
+from .overlayfs import OverlayFS  # noqa: F401

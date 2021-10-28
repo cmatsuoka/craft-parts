@@ -28,7 +28,7 @@ class TestOverlayFS:
     """Mount and unmount an overlayfs."""
 
     @staticmethod
-    def _make_overlay_fs(lower: List[Path]) -> overlay_fs.OverlayFS:
+    def _make_overlay_fs(lower: List[Path]) -> overlay_fs.OverlayFSDriver:
         return overlay_fs.OverlayFS(
             lower_dirs=lower,
             upper_dir=Path("/upper"),
@@ -148,15 +148,15 @@ class TestHelpers:
 
         mocker.patch("pathlib.Path.is_symlink", return_value=is_symlink)
 
-        assert overlay_fs.is_whiteout_file(Path("whiteout_file")) == result
+        assert overlay_fs.OverlayFS.is_whiteout_file(Path("whiteout_file")) == result
 
     def test_not_whiteout_file(self):
         Path("regular_file").touch()
-        assert overlay_fs.is_whiteout_file(Path("regular_file")) is False
+        assert overlay_fs.OverlayFS.is_whiteout_file(Path("regular_file")) is False
 
     def test_whiteout_file_missing(self):
         assert Path("missing_file").exists() is False
-        assert overlay_fs.is_whiteout_file(Path("missing_file")) is False
+        assert overlay_fs.OverlayFS.is_whiteout_file(Path("missing_file")) is False
 
     @pytest.mark.parametrize(
         "is_dir,is_symlink,attr,result",
@@ -183,8 +183,8 @@ class TestHelpers:
 
         mocker.patch("os.getxattr", new=lambda x, y: attr)
 
-        assert overlay_fs.is_opaque_dir(Path("opaque_dir")) == result
+        assert overlay_fs.OverlayFS.is_opaque_dir(Path("opaque_dir")) == result
 
     def test_opaque_dir_missing(self):
         assert Path("missing").exists() is False
-        assert overlay_fs.is_opaque_dir(Path("missing")) is False
+        assert overlay_fs.OverlayFS.is_opaque_dir(Path("missing")) is False

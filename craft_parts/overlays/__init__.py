@@ -18,8 +18,7 @@
 
 from .layers import LayerHash  # noqa: F401
 from .layers import LayerStateManager  # noqa: F401
-from .overlay_fs import is_opaque_dir  # noqa: F401
-from .overlay_fs import is_whiteout_file  # noqa: F401
+from .overlay_fs import OverlayFS  # noqa: F401
 from .overlay_manager import LayerMount  # noqa: F401
 from .overlay_manager import OverlayManager  # noqa: F401
 from .overlay_manager import PackageCacheMount  # noqa: F401

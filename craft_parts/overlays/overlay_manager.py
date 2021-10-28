@@ -27,7 +27,7 @@ from craft_parts.infos import ProjectInfo
 from craft_parts.parts import Part
 
 from . import chroot
-from .overlay_fs import OverlayFS
+from .overlay_fs import OverlayFS, OverlayFSDriver
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class OverlayManager:
         self._project_info = project_info
         self._part_list = part_list
         self._layer_dirs = [p.part_layer_dir for p in part_list]
-        self._overlay_fs: Optional[OverlayFS] = None
+        self._overlay_fs: Optional[OverlayFSDriver] = None
         self._base_layer_dir = base_layer_dir
 
     def mount_layer(self, part: Part, *, pkg_cache: bool = False) -> None:

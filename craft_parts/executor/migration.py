@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Dict, Optional, Set, Tuple
 
 from craft_parts import overlays
+from craft_parts.overlays import OverlayFS
 from craft_parts.state_manager.states import MigrationState, StepState
 from craft_parts.utils import file_utils
 
@@ -119,11 +120,11 @@ def migrate_files(
 
 
 def _is_whiteout_file(path: Path) -> bool:
-    return overlays.is_whiteout_file(path) or overlays.is_oci_whiteout_file(path)
+    return OverlayFS.is_whiteout_file(path) or overlays.is_oci_whiteout_file(path)
 
 
 def _is_opaque_dir(path: Path) -> bool:
-    return overlays.is_opaque_dir(path) or overlays.is_oci_opaque_dir(path)
+    return OverlayFS.is_opaque_dir(path) or overlays.is_oci_opaque_dir(path)
 
 
 def clean_shared_area(
