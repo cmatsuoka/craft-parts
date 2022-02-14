@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -165,6 +166,21 @@ class TestExecutionContext:
         captured = capfd.readouterr()
         assert captured.out == "prologue custom for p1\nbuild\n"
 
+    def test_capture_stdout(self, capfd, new_dir):
+        def cbf(info, part_list):
+            print(f"prologue {info.custom} for {part_list[0].name}")
+
+        callbacks.register_prologue(cbf)
+        p1 = Part("p1", {"plugin": "nil", "override-build": "echo build"})
+        info = ProjectInfo(application_name="test", cache_dir=new_dir, custom="custom")
+        e = Executor(project_info=info, part_list=[p1])
+
+        with ExecutionContext(executor=e) as ctx:
+            ctx.execute(Action("p1", Step.BUILD))
+
+        captured = capfd.readouterr()
+        assert captured.out == "prologue custom for p1\nbuild\n"
+
     def test_epilogue(self, capfd, new_dir):
         def cbf(info, part_list):
             print(f"epilogue {info.custom} for {part_list[0].name}")
@@ -179,3 +195,21 @@ class TestExecutionContext:
 
         captured = capfd.readouterr()
         assert captured.out == "build\nepilogue custom for p1\n"
+
+    def test_capture_stdout(self, capfd, new_dir):
+        def cbf(info, part_list):
+            print(f"prologue {info.custom} for {part_list[0].name}")
+
+        callbacks.register_prologue(cbf)
+        p1 = Part("p1", {"plugin": "nil", "override-build": "echo out; echo err >&1"})
+        info = ProjectInfo(application_name="test", cache_dir=new_dir, custom="custom")
+        e = Executor(project_info=info, part_list=[p1])
+
+        output_path = Path("output.txt")
+
+        with output_path.open("w") as output, ExecutionContext(executor=e) as ctx:
+            ctx.execute(Action("p1", Step.BUILD), stdout=output, stderr=subprocess.STDOUT)
+
+        captured = capfd.readouterr()
+        assert captured.out == "prologue custom for p1\n"
+        assert output_path.read_text() == "out\nerr\n"
