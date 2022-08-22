@@ -23,6 +23,7 @@ import os
 import re
 import shutil
 from contextlib import ContextDecorator
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -33,6 +34,7 @@ import apt.progress
 import apt.progress.base
 import apt_pkg
 
+from craft_parts import bom, xattrs
 from craft_parts.utils import os_utils
 
 from . import errors
@@ -251,6 +253,12 @@ class AptCache(ContextDecorator):
                 raise errors.PackageNotFound(package.name)
 
             downloaded.append((package.name, package.candidate.version, Path(dl_path)))
+
+            component = _AptComponent.from_package(package)
+            if component:
+                bom_file = component.write(Path(dl_path))
+                xattrs.write_bom_metadata_file(dl_path, str(bom_file.name))
+
         return downloaded
 
     def get_installed_packages(self) -> Dict[str, str]:
@@ -385,3 +393,29 @@ def _set_pkg_version(package: apt.package.Package, version: str) -> None:
             package.candidate = pkg_version
     else:
         raise errors.PackageNotFound(f"{package.name}={version}")
+
+
+class _AptComponent(bom.Component):
+    component_architecture: str
+
+    @classmethod
+    def from_package(cls, package: apt.package.Package) -> "Optional[_AptComponent]":
+        """Create an _AptComponent object using data from an apt package."""
+        candidate = package.candidate
+        if not candidate:
+            return None
+
+        return cls(
+            component_type="deb",
+            component_name=package.shortname,
+            component_architecture=candidate.architecture,
+            component_hashes={
+                "md5": candidate.md5,
+                "sha1": candidate.sha1,
+                "sha256": candidate.sha256,
+            },
+            version_string=candidate.version,
+            author_name=candidate.record["Maintainer"],
+            supplier_name=candidate.origins[0].origin,
+            timestamp=datetime.now(),
+        )
