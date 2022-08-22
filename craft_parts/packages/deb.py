@@ -28,6 +28,7 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List, Sequence, Set, Tuple
 
+from craft_parts import xattrs
 from craft_parts.utils import deb_utils, file_utils, os_utils
 
 from . import errors
@@ -600,6 +601,15 @@ class Ubuntu(BaseRepository):
                     file_utils.link_or_copy(
                         str(dl_path), str(stage_packages_path / dl_path.name)
                     )
+
+                    # Also copy the BOM metadata file, if any
+                    bom_attr = xattrs.read_bom_metadata_file(str(dl_path))
+                    if bom_attr:
+                        bom_path = dl_path.parent / bom_attr
+                        if bom_path.exists():
+                            file_utils.link_or_copy(
+                                str(bom_path), str(stage_packages_path / bom_path.name)
+                            )
 
         return sorted(installed)
 
