@@ -25,7 +25,11 @@ import pytest
 from craft_parts.packages import apt_cache, errors
 from craft_parts.packages.apt_cache import AptCache
 
-# xpylint: disable=too-few-public-methods
+
+@pytest.fixture(autouse=True)
+def _setup_fixture(mocker):
+    mocker.patch("craft_parts.xattrs.write_bom_metadata_file")
+    mocker.patch("craft_parts.xattrs.read_bom_metadata_file", return_value=None)
 
 
 class TestAptStageCache:

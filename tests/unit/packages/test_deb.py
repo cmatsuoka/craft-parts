@@ -33,6 +33,12 @@ from craft_parts.packages.deb_package import DebPackage
 
 
 @pytest.fixture(autouse=True)
+def _setup_fixture(mocker):
+    mocker.patch("craft_parts.xattrs.write_bom_metadata_file")
+    mocker.patch("craft_parts.xattrs.read_bom_metadata_file", return_value=None)
+
+
+@pytest.fixture(autouse=True)
 def mock_env_copy():
     with mock.patch("os.environ.copy", return_value={}) as m:
         yield m

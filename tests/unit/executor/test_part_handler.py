@@ -37,6 +37,12 @@ from craft_parts.utils import os_utils
 # pylint: disable=too-many-lines
 
 
+@pytest.fixture(autouse=True)
+def _setup_fixture(mocker):
+    mocker.patch("craft_parts.xattrs.write_bom_metadata_file")
+    mocker.patch("craft_parts.xattrs.read_bom_metadata_file", return_value=None)
+
+
 @pytest.mark.usefixtures("new_dir")
 class TestPartHandling:
     """Verify the part handler step processing."""
