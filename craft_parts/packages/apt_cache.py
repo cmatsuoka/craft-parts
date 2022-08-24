@@ -256,8 +256,7 @@ class AptCache(ContextDecorator):
 
             component = _AptComponent.from_package(package)
             if component:
-                bom_file = component.write(Path(dl_path))
-                xattrs.write_bom_metadata_file(dl_path, str(bom_file.name))
+                component.write(Path(dl_path))
 
         return downloaded
 
@@ -418,4 +417,5 @@ class _AptComponent(bom.Component):
             author_name=candidate.record["Maintainer"],
             supplier_name=candidate.origins[0].origin,
             timestamp=datetime.now(),
+            download_location=candidate.uri,
         )

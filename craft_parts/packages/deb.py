@@ -603,13 +603,14 @@ class Ubuntu(BaseRepository):
                     )
 
                     # Also copy the BOM metadata file, if any
-                    bom_attr = xattrs.read_bom_metadata_file(str(dl_path))
-                    if bom_attr:
-                        bom_path = dl_path.parent / bom_attr
-                        if bom_path.exists():
-                            file_utils.link_or_copy(
-                                str(bom_path), str(stage_packages_path / bom_path.name)
-                            )
+                    component_metadata_path = dl_path.parent / (
+                        dl_path.name + ".component"
+                    )
+                    if component_metadata_path.exists():
+                        file_utils.link_or_copy(
+                            str(component_metadata_path),
+                            str(stage_packages_path / component_metadata_path.name),
+                        )
 
         return sorted(installed)
 
@@ -628,7 +629,8 @@ class Ubuntu(BaseRepository):
                 deb_utils.extract_deb(pkg_path, Path(extract_dir), logger.debug)
                 # Mark source of files.
                 marked_name = cls._extract_deb_name_version(pkg_path)
-                mark_origin_stage_package(extract_dir, marked_name)
+                mark_origin_stage_package(extract_dir, marked_name, pkg_path)
+
                 # Stage files to install_dir.
                 file_utils.link_or_copy_tree(extract_dir, install_path.as_posix())
 
