@@ -16,8 +16,6 @@
 
 """Craft a project from several parts."""
 
-__version__ = "1.13.0"
-
 from . import plugins
 from .actions import Action, ActionType
 from .dirs import ProjectDirs
@@ -27,6 +25,7 @@ from .infos import PartInfo, ProjectInfo, StepInfo
 from .lifecycle_manager import LifecycleManager
 from .parts import Part
 from .steps import Step
+from .version import __version__
 
 __all__ = [
     "Action",
@@ -41,4 +40,5 @@ __all__ = [
     "Step",
     "plugins",
     "expand_environment",
+    "__version__",
 ]

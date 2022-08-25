@@ -170,6 +170,7 @@ class LifecycleManager:
             extra_build_snaps=extra_build_snaps,
             base_layer_dir=base_layer_dir,
             base_layer_hash=layer_hash,
+            generate_bom=True,
         )
         self._project_info = project_info
         # pylint: enable=too-many-locals

@@ -107,7 +107,8 @@ class Executor:
         self._project_info.execution_finished = True
 
         if self._generate_bom:
-            bom.generate_parts_bom(self._part_list)
+            project_name = self._project_info.project_name or "parts"
+            bom.generate_parts_bom(self._part_list, project_name=project_name)
 
         callbacks.run_epilogue(self._project_info)
 

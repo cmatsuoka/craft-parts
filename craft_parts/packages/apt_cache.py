@@ -34,7 +34,7 @@ import apt.progress
 import apt.progress.base
 import apt_pkg
 
-from craft_parts import bom, xattrs
+from craft_parts import bom
 from craft_parts.utils import os_utils
 
 from . import errors
@@ -404,6 +404,9 @@ class _AptComponent(bom.Component):
         if not candidate:
             return None
 
+        supplier = candidate.origins[0].origin
+        distro = candidate.origins[0].archive
+
         return cls(
             component_type="deb",
             component_name=package.shortname,
@@ -415,7 +418,11 @@ class _AptComponent(bom.Component):
             },
             version_string=candidate.version,
             author_name=candidate.record["Maintainer"],
-            supplier_name=candidate.origins[0].origin,
+            supplier_name=supplier,
             timestamp=datetime.now(),
             download_location=candidate.uri,
+            purl=(
+                f"pkg:deb/{supplier.lower()}/{package.shortname}@{candidate.version}"
+                f"?arch={package.architecture()}?distro={distro}"
+            ),
         )
