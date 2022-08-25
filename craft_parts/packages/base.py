@@ -258,7 +258,9 @@ def mark_origin_stage_package(
 
             # Mark source.
             xattrs.write_origin_stage_package(file_path, stage_package)
-            xattrs.write_bom_metadata_file(file_path, pkg_path.name + ".component")
+            xattrs.write_bom_metadata_file(
+                file_path, Path(pkg_path).name + ".component"
+            )
 
             file_path = os.path.relpath(root, sources_dir)
             file_list.add(file_path)

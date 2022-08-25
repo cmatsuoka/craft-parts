@@ -28,7 +28,6 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
-from craft_parts import xattrs
 from craft_parts.utils import deb_utils, file_utils, os_utils
 
 from . import errors
@@ -691,7 +690,7 @@ class Ubuntu(BaseRepository):
                 deb_utils.extract_deb(pkg_path, Path(extract_dir), logger.debug)
                 # Mark source of files.
                 marked_name = cls._extract_deb_name_version(pkg_path)
-                mark_origin_stage_package(extract_dir, marked_name, pkg_path)
+                mark_origin_stage_package(extract_dir, marked_name, str(pkg_path))
 
                 # Stage files to install_dir.
                 file_utils.link_or_copy_tree(extract_dir, install_path.as_posix())
