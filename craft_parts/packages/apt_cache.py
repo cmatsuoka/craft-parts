@@ -417,6 +417,9 @@ class _AptComponent(bom.Component):
                 "sha256": candidate.sha256,
             },
             version_string=candidate.version,
+            component_id=(
+                f"deb:{package.shortname}_{candidate.version}_{candidate.sha256[:8]}"
+            ),
             author_name=candidate.record["Maintainer"],
             supplier_name=supplier,
             timestamp=datetime.now(),

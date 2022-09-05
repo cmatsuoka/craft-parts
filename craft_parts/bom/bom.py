@@ -16,15 +16,13 @@
 
 """BOM definition and helpers."""
 
+import dataclasses
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 import pydantic
-
-from craft_parts.parts import Part
-from craft_parts.version import __version__
 
 from .cdx import (
     CycloneDX_SBOM,
@@ -57,6 +55,7 @@ class Component(_BaseModel):
     component_type: str
     component_name: str
     component_hashes: Dict[str, str]
+    component_id: str
     version_string: str
     supplier_name: str
     author_name: str
@@ -87,6 +86,20 @@ _CDX_HASH_ALGORITHM_TRANSLATION = {
 }
 
 
+@dataclasses.dataclass
+class Metadata:
+    """Application SBOM metadata."""
+
+    component_name: str
+    component_version: str
+    component_vendor: str
+    component_description: str
+    component_id: str
+    tool_name: str
+    tool_version: str
+    tool_vendor: str
+
+
 class ComponentList(_BaseModel):
     """A list of BOM components."""
 
@@ -105,19 +118,15 @@ class ComponentList(_BaseModel):
 
         return bom_file
 
-    def write_cdx(self, file_path: Path, *, name: str) -> Path:
+    def write_cdx(self, file_path: Path, *, metadata: Metadata) -> Path:
         """Write bom component as a CycloneDX json file."""
         components: List[CycloneDX_SBOM_component] = []
         dependencies: List[CycloneDX_SBOM_dependency] = []
 
+        app_dependencies: Set[str] = set()
+
         for comp in self.components:
-            bom_ref = (
-                f"{comp.component_type}:{comp.supplier_name.lower()}/"
-                f"{comp.component_name}_{comp.version_string}"
-            )
-            hash_sha256 = comp.component_hashes.get("sha256")
-            if hash_sha256:
-                bom_ref += f"_{hash_sha256[:8]}"
+            bom_ref = comp.component_id
 
             hashes: List[CycloneDX_SBOM_component_hash] = []
             for alg, content in comp.component_hashes.items():
@@ -150,10 +159,16 @@ class ComponentList(_BaseModel):
             # have their own dependencies MUST be declared as empty elements within the
             # graph. Components that are not represented in the dependency graph MAY
             # have unknown dependencies. It is RECOMMENDED that implementations assume
-            # this # to be opaque and not an indicator of a component being
+            # this to be opaque and not an indicator of a component being
             # dependency-free.
-            dependency = CycloneDX_SBOM_dependency(ref=bom_ref)
-            dependencies.append(dependency)
+            app_dependencies.add(bom_ref)
+            dependencies.append(CycloneDX_SBOM_dependency(ref=bom_ref))
+
+        dependencies.append(
+            CycloneDX_SBOM_dependency(
+                ref=metadata.component_name, dependsOn=sorted(app_dependencies)
+            )
+        )
 
         sbom = CycloneDX_SBOM(
             serialNumber=uuid.uuid4().urn,
@@ -162,15 +177,16 @@ class ComponentList(_BaseModel):
                 timestamp=str(datetime.now()),  # XXX: add tzone
                 tools=[
                     CycloneDX_SBOM_metadata_tool(
-                        vendor="Canonical",
-                        name="craft-parts",
-                        version=__version__,
+                        vendor=metadata.tool_vendor,
+                        name=metadata.tool_name,
+                        version=metadata.tool_version,
                     )
                 ],
                 component=CycloneDX_SBOM_metadata_component(
                     type="application",
-                    name=name,
-                    description=f"Parts-processed payload for project {name!r}",
+                    name=metadata.component_name,
+                    description=metadata.component_description,
+                    bom_ref=metadata.component_id,
                 ),
             ),
             components=components,
@@ -182,24 +198,23 @@ class ComponentList(_BaseModel):
         return file_path
 
 
-def generate_parts_bom(part_list: List[Part], *, project_name: str) -> None:
-    """Create a BOM for the target directory.
+def consolidate_component_list(part_list: List) -> ComponentList:
+    """Merge BOM information from existing sources.
 
     Gather partial BOM items from different origins, including the part
-    source component, part dependencies BOM, and stage packages BOM.
+    source component, part dependencies, and stage packages.
     """
-    # for each part,
+    all_comps: Dict[str, Component] = {}
 
-    # obtain part source BOM
+    for part in part_list:
+        # obtain part source BOM
 
-    # obtain part dependencies BOM
+        # obtain part dependencies BOM
 
-    # obtain stage packages BOM
+        # obtain stage packages BOM
+        pkg_bom_path = Path(part.part_state_dir / "stage_packages.bom")
+        pkg_bom = ComponentList.read(pkg_bom_path)
+        for component in pkg_bom.components:
+            all_comps[component.component_id] = component
 
-    part = part_list[0]
-    file_path = Path(part.part_state_dir / "stage_packages.bom")
-    stage_packages_bom = ComponentList.read(file_path)
-
-    # write the deduplicated, consolidated BOM
-
-    stage_packages_bom.write_cdx(Path("parts.cdx"), name=project_name)
+    return ComponentList(components=list(all_comps.values()))

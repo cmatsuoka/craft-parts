@@ -16,6 +16,8 @@
 
 """Craft a project from several parts."""
 
+__version__ = "1.13.0"
+
 from . import plugins
 from .actions import Action, ActionProperties, ActionType
 from .dirs import ProjectDirs
@@ -25,7 +27,6 @@ from .infos import PartInfo, ProjectInfo, StepInfo
 from .lifecycle_manager import LifecycleManager
 from .parts import Part, validate_part
 from .steps import Step
-from .version import __version__
 
 __all__ = [
     "Action",
