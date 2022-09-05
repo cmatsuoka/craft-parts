@@ -22,7 +22,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from craft_parts import bom, callbacks, overlays, packages, parts, plugins
+from craft_parts import callbacks, overlays, packages, parts, plugins
 from craft_parts.actions import Action, ActionType
 from craft_parts.executor.environment import generate_step_environment
 from craft_parts.infos import PartInfo, ProjectInfo, StepInfo
@@ -64,7 +64,6 @@ class Executor:
         ignore_patterns: Optional[List[str]] = None,
         base_layer_dir: Optional[Path] = None,
         base_layer_hash: Optional[LayerHash] = None,
-        generate_bom: bool = False,
     ):
         self._part_list = sort_parts(part_list)
         self._project_info = project_info
@@ -73,7 +72,6 @@ class Executor:
         self._base_layer_hash = base_layer_hash
         self._handler: Dict[str, PartHandler] = {}
         self._ignore_patterns = ignore_patterns
-        self._generate_bom = generate_bom
 
         self._overlay_manager = OverlayManager(
             project_info=self._project_info,
@@ -105,11 +103,6 @@ class Executor:
         This method is called after executing lifecycle actions.
         """
         self._project_info.execution_finished = True
-
-        if self._generate_bom:
-            project_name = self._project_info.project_name or "parts"
-            bom.generate_parts_bom(self._part_list, project_name=project_name)
-
         callbacks.run_epilogue(self._project_info)
 
     def execute(

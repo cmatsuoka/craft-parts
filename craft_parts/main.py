@@ -33,6 +33,7 @@ import yaml
 from xdg import BaseDirectory  # type: ignore
 
 import craft_parts
+import craft_parts.bom
 import craft_parts.errors
 from craft_parts import ActionType, Step
 
@@ -109,6 +110,21 @@ def _process_parts(options: argparse.Namespace) -> None:
         sys.exit()
 
     _do_step(lcm, options)
+
+    # bom generation
+    bom_metadata = craft_parts.bom.Metadata(
+        component_name="primed-parts",
+        component_version="0",
+        component_vendor="user",
+        component_description="Payload processed by craft-parts.",
+        component_id="<unique reference ID to this package>",
+        tool_name="craft-parts",
+        tool_version=craft_parts.__version__,
+        tool_vendor="Canonical",
+    )
+
+    parts_bom = lcm.get_parts_bom()
+    parts_bom.write_cdx(Path("parts.cdx"), metadata=bom_metadata)
 
 
 def _do_step(lcm: craft_parts.LifecycleManager, options: argparse.Namespace) -> None:

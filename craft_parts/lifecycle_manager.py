@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union, cast
 
 from pydantic import ValidationError
 
-from craft_parts import errors, executor, packages, plugins, sequencer
+from craft_parts import bom, errors, executor, packages, plugins, sequencer
 from craft_parts.actions import Action
 from craft_parts.dirs import ProjectDirs
 from craft_parts.infos import ProjectInfo
@@ -170,7 +170,6 @@ class LifecycleManager:
             extra_build_snaps=extra_build_snaps,
             base_layer_dir=base_layer_dir,
             base_layer_hash=layer_hash,
-            generate_bom=True,
         )
         self._project_info = project_info
         # pylint: enable=too-many-locals
@@ -252,6 +251,10 @@ class LifecycleManager:
             return None
 
         return sorted(state.primed_stage_packages)
+
+    def get_parts_bom(self) -> bom.ComponentList:
+        """Obtain the parts bill of materials."""
+        return bom.consolidate_component_list(part_list=self._part_list)
 
 
 def _ensure_overlay_supported() -> None:
