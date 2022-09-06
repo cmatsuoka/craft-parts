@@ -27,6 +27,7 @@ import pydantic
 from .cdx import (
     CycloneDX_SBOM,
     CycloneDX_SBOM_component,
+    CycloneDX_SBOM_component_externalReference,
     CycloneDX_SBOM_component_hash,
     CycloneDX_SBOM_component_supplier,
     CycloneDX_SBOM_dependency,
@@ -141,6 +142,16 @@ class ComponentList(_BaseModel):
                 )
                 hashes.append(comp_hash)
 
+            ext_refs: List[CycloneDX_SBOM_component_externalReference] = []
+            if comp.component_type == "deb" and comp.supplier_name == "Ubuntu":
+                ref_url = f"<URL to SBOM document for package {comp.component_name}>"
+                ext_refs = [
+                    CycloneDX_SBOM_component_externalReference(
+                        url=ref_url,
+                        type="bom",
+                    )
+                ]
+
             component = CycloneDX_SBOM_component(
                 type="application",  # XXX: add infrastructure to check if library
                 bom_ref=bom_ref,
@@ -152,6 +163,7 @@ class ComponentList(_BaseModel):
                 version=comp.version_string,
                 hashes=hashes,
                 purl=comp.purl,
+                externalReferences=ext_refs or None,
             )
             components.append(component)
 
