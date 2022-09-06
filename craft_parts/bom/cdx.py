@@ -218,6 +218,47 @@ class CycloneDX_SBOM_component_hash(_BaseModel):  # noqa: D101
     )
 
 
+class CycloneDX_SBOM_component_externalReference_hash(_BaseModel):  # noqa: D101
+    alg: Literal[
+        "MD5",
+        "SHA-1",
+        "SHA-256",
+        "SHA-384",
+        "SHA-512",
+        "BLAKE2b-256",
+        "BLAKE2b-384",
+        "BLAKE2b-512",
+        "BLAKE3",
+    ]
+    content: constr(  # type: ignore
+        regex=r"^([a-fA-F0-9]{32}|[a-fA-F0-9]{40}|[a-fA-F0-9]{64}|[a-fA-F0-9]{96}|[a-fA-F0-9]{128})$"  # noqa: F722
+    )
+
+
+class CycloneDX_SBOM_component_externalReference(_BaseModel):  # noqa: D101
+    url: str
+    comment: Optional[str] = None
+    type: Literal[
+        "vcs",
+        "issue-tracker",
+        "website",
+        "advisories",
+        "bom",
+        "mailing-list",
+        "social",
+        "chat",
+        "documentation",
+        "support",
+        "distribution",
+        "license",
+        "build-meta",
+        "build-system",
+        "release-notes",
+        "other",
+    ]
+    hashes: Optional[List[CycloneDX_SBOM_component_externalReference_hash]] = None
+
+
 class CycloneDX_SBOM_component(_BaseModel):  # noqa: D101
     type: Literal[
         "application",
@@ -246,7 +287,9 @@ class CycloneDX_SBOM_component(_BaseModel):  # noqa: D101
     purl: Optional[str] = None
     # swid: Optional[Any]
     # pedigree
-    # externalReferences
+    externalReferences: Optional[
+        List[CycloneDX_SBOM_component_externalReference]
+    ] = None
     # components
     # evidence
     # releaseNotes
