@@ -22,7 +22,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from craft_parts import callbacks, overlays, packages, parts, plugins
+from craft_parts import bom, callbacks, overlays, packages, parts, plugins
 from craft_parts.actions import Action, ActionType
 from craft_parts.executor.environment import generate_step_environment
 from craft_parts.infos import PartInfo, ProjectInfo, StepInfo
@@ -103,7 +103,13 @@ class Executor:
         This method is called after executing lifecycle actions.
         """
         self._project_info.execution_finished = True
+        self.generate_intermediate_metadata()
         callbacks.run_epilogue(self._project_info)
+
+    def generate_intermediate_metadata(self):
+        """Obtain the parts bill of materials."""
+        components = bom.consolidate_component_list(part_list=self._part_list)
+        components.write(Path("parts.metadata"))
 
     def execute(
         self,
