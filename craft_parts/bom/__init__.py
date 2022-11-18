@@ -16,9 +16,4 @@
 
 """Bill of materials generation."""
 
-from .bom import (  # noqa: F401
-    Component,
-    ComponentList,
-    Metadata,
-    consolidate_component_list,
-)
+from .bom import Component, ComponentList, Metadata  # noqa: F401

@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union, cast
 
 from pydantic import ValidationError
 
-from craft_parts import errors, executor, packages, plugins, sequencer
+from craft_parts import components, errors, executor, packages, plugins, sequencer
 from craft_parts.actions import Action
 from craft_parts.dirs import ProjectDirs
 from craft_parts.infos import ProjectInfo
@@ -251,6 +251,23 @@ class LifecycleManager:
             return None
 
         return sorted(state.primed_stage_packages)
+
+    def generate_intermediate_metadata(self) -> None:
+        """Write the intermediate metadata file."""
+        pulled_packages: List[str] = []
+
+        for part in self._part_list:
+            pull_state = states.load_step_state(part, Step.PULL)
+            if pull_state:
+                pull_state = cast(states.PullState, pull_state)
+                pkg_list = pull_state.assets.get("stage-packages")
+                if pkg_list:
+                    pulled_packages.append(pkg_list)
+
+        component_list = components.consolidate_component_list(
+            part_list=self._part_list
+        )
+        component_list.write(Path("parts.metadata"))
 
 
 def _ensure_overlay_supported() -> None:

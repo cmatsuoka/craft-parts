@@ -26,16 +26,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, cast
 
 from typing_extensions import Protocol
 
-from craft_parts import (
-    bom,
-    callbacks,
-    errors,
-    overlays,
-    packages,
-    plugins,
-    sources,
-    xattrs,
-)
+from craft_parts import callbacks, errors, overlays, packages, plugins, sources, xattrs
 from craft_parts.actions import Action, ActionType
 from craft_parts.infos import PartInfo, StepInfo
 from craft_parts.overlays import LayerHash, OverlayManager
@@ -422,14 +413,6 @@ class PartHandler:
             primed_stage_packages = _get_primed_stage_packages(
                 contents.files, prime_dir=self._part.prime_dir
             )
-
-            components = _get_stage_packages_components(
-                contents.files,
-                prime_dir=self._part.prime_dir,
-                packages_dir=self._part.part_packages_dir,
-            )
-            stage_packages_bom = bom.ComponentList(components=components)
-            stage_packages_bom.write(self._part.part_state_dir / "stage_packages")
         else:
             primed_stage_packages = set()
 
@@ -1135,25 +1118,3 @@ def _get_primed_stage_packages(snap_files: Set[str], *, prime_dir: Path) -> Set[
         if stage_package:
             primed_stage_packages.add(stage_package)
     return primed_stage_packages
-
-
-def _get_stage_packages_components(
-    snap_files: Set[str],
-    *,
-    prime_dir: Path,
-    packages_dir: Path,
-) -> List[bom.Component]:
-    metadata_files: Set[str] = set()
-    for snap_file in snap_files:
-        snap_file = str(prime_dir / snap_file)
-        metadata_file = xattrs.read_bom_metadata_file(snap_file)
-        if metadata_file:
-            metadata_files.add(metadata_file)
-
-    components: List[bom.Component] = []
-    for metadata_file in sorted(metadata_files):
-        logger.debug("bom component metadata file: %s", metadata_file)
-        component = bom.Component.read(packages_dir / metadata_file)
-        components.append(component)
-
-    return components

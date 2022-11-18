@@ -24,7 +24,6 @@ from craft_parts import errors
 
 # TODO: this might be a separations of concern leak, improve this handling.
 _STAGE_PACKAGE_KEY = "origin_stage_package"
-_BOM_METADATA_FILE_KEY = "bom_metadata_file"
 
 
 def _get_xattr_key(key: str) -> str:
@@ -84,13 +83,3 @@ def read_origin_stage_package(path: str) -> Optional[str]:
 def write_origin_stage_package(path: str, value: str) -> None:
     """Write origin stage package."""
     _write_xattr(path, _STAGE_PACKAGE_KEY, value)
-
-
-def read_bom_metadata_file(path: str) -> Optional[str]:
-    """Read origin stage package."""
-    return _read_xattr(path, _BOM_METADATA_FILE_KEY)
-
-
-def write_bom_metadata_file(path: str, value: str) -> None:
-    """Write origin stage package."""
-    _write_xattr(path, _BOM_METADATA_FILE_KEY, value)

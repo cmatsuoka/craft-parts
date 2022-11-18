@@ -33,7 +33,6 @@ import yaml
 from xdg import BaseDirectory  # type: ignore
 
 import craft_parts
-import craft_parts.bom
 import craft_parts.errors
 from craft_parts import ActionType, Step
 
@@ -110,6 +109,8 @@ def _process_parts(options: argparse.Namespace) -> None:
         sys.exit()
 
     _do_step(lcm, options)
+
+    lcm.generate_intermediate_metadata()
 
 
 def _do_step(lcm: craft_parts.LifecycleManager, options: argparse.Namespace) -> None:

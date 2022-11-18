@@ -17,24 +17,11 @@
 """BOM definition and helpers."""
 
 import dataclasses
-import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 
 import pydantic
-
-from .cdx import (
-    CycloneDX_SBOM,
-    CycloneDX_SBOM_component,
-    CycloneDX_SBOM_component_externalReference,
-    CycloneDX_SBOM_component_hash,
-    CycloneDX_SBOM_component_supplier,
-    CycloneDX_SBOM_dependency,
-    CycloneDX_SBOM_metadata,
-    CycloneDX_SBOM_metadata_component,
-    CycloneDX_SBOM_metadata_tool,
-)
 
 
 class _BaseModel(pydantic.BaseModel):
@@ -73,18 +60,10 @@ class Component(_BaseModel):
         """Write bom component to persistent storage."""
         file_path.parent.mkdir(parents=True, exist_ok=True)
         component_file = file_path.parent / (file_path.name + ".component")
+        print("=== write component data to:", str(component_file))
         component_file.write_text(self.json(by_alias=True))
 
         return component_file
-
-
-_CDX_HASH_ALGORITHM_TRANSLATION = {
-    "md5": "MD5",
-    "sha1": "SHA-1",
-    "sha256": "SHA-256",
-    "sha384": "SHA-384",
-    "sha512": "SHA-512",
-}
 
 
 @dataclasses.dataclass
@@ -118,25 +97,3 @@ class ComponentList(_BaseModel):
         bom_file.write_text(self.json(by_alias=True))
 
         return bom_file
-
-
-def consolidate_component_list(part_list: List) -> ComponentList:
-    """Merge BOM information from existing sources.
-
-    Gather partial BOM items from different origins, including the part
-    source component, part dependencies, and stage packages.
-    """
-    all_comps: Dict[str, Component] = {}
-
-    for part in part_list:
-        # obtain part source BOM
-
-        # obtain part dependencies BOM
-
-        # obtain stage packages BOM
-        pkg_bom_path = Path(part.part_state_dir / "stage_packages.bom")
-        pkg_bom = ComponentList.read(pkg_bom_path)
-        for component in pkg_bom.components:
-            all_comps[component.component_id] = component
-
-    return ComponentList(components=list(all_comps.values()))
