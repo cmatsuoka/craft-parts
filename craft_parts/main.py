@@ -110,8 +110,6 @@ def _process_parts(options: argparse.Namespace) -> None:
 
     _do_step(lcm, options)
 
-    lcm.generate_intermediate_metadata()
-
 
 def _do_step(lcm: craft_parts.LifecycleManager, options: argparse.Namespace) -> None:
     target_step = _parse_step(options.command) if options.command else Step.PRIME

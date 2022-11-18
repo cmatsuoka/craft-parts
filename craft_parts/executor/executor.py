@@ -24,6 +24,7 @@ from typing import Dict, List, Optional, Union
 
 from craft_parts import callbacks, overlays, packages, parts, plugins
 from craft_parts.actions import Action, ActionType
+from craft_parts.bom import components
 from craft_parts.executor.environment import generate_step_environment
 from craft_parts.infos import PartInfo, ProjectInfo, StepInfo
 from craft_parts.overlays import LayerHash, OverlayManager
@@ -103,7 +104,15 @@ class Executor:
         This method is called after executing lifecycle actions.
         """
         self._project_info.execution_finished = True
+        self._generate_intermediate_metadata()
         callbacks.run_epilogue(self._project_info)
+
+    def _generate_intermediate_metadata(self) -> None:
+        """Write the intermediate metadata file."""
+        component_list = components.consolidate_component_list(
+            part_list=self._part_list
+        )
+        component_list.write(Path("parts.metadata"))
 
     def execute(
         self,
