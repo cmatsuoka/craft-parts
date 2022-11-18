@@ -16,7 +16,6 @@
 
 """BOM definition and helpers."""
 
-import dataclasses
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -44,6 +43,7 @@ class Component(_BaseModel):
     component_name: str
     component_hashes: Dict[str, str]
     component_id: str
+    architecture: str
     version_string: str
     supplier_name: str
     author_name: str
@@ -66,9 +66,8 @@ class Component(_BaseModel):
         return component_file
 
 
-@dataclasses.dataclass
-class Metadata:
-    """Application SBOM metadata."""
+class IntermediateMetadata(_BaseModel):
+    """Application intermediate metadata."""
 
     component_name: str
     component_version: str
@@ -78,6 +77,19 @@ class Metadata:
     tool_name: str
     tool_version: str
     tool_vendor: str
+    timestamp: str
+
+    components: List[Component]
+
+    @classmethod
+    def read(cls, file_path: Path) -> "IntermediateMetadata":
+        """Read intermediate metadata json from file."""
+        return pydantic.parse_file_as(path=file_path, type_=cls)
+
+    def write(self, file_path: Path) -> None:
+        """Write intermediate metadat to persistent storage."""
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(self.json(by_alias=True))
 
 
 class ComponentList(_BaseModel):

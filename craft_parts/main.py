@@ -26,6 +26,7 @@ import argparse
 import logging
 import subprocess
 import sys
+import time
 from functools import partial
 from pathlib import Path
 
@@ -33,6 +34,7 @@ import yaml
 from xdg import BaseDirectory  # type: ignore
 
 import craft_parts
+import craft_parts.bom
 import craft_parts.errors
 from craft_parts import ActionType, Step
 
@@ -109,6 +111,22 @@ def _process_parts(options: argparse.Namespace) -> None:
         sys.exit()
 
     _do_step(lcm, options)
+
+    # Generate intermediate metadata file
+    intermediate_metadata = craft_parts.bom.IntermediateMetadata(
+        component_name="primed-parts",
+        component_version="0",
+        component_vendor="",
+        component_description="Payload processed by craft-parts.",
+        component_id="",
+        tool_name="craft-parts",
+        tool_version=craft_parts.__version__,
+        tool_vendor="Canonical",
+        timestamp=time.strftime("%F %T%z"),
+        components=lcm.get_parts_intermediate_metadata(),
+    )
+    print("Generating intermediate metadata...")
+    intermediate_metadata.write(Path("parts.metadata"))
 
 
 def _do_step(lcm: craft_parts.LifecycleManager, options: argparse.Namespace) -> None:

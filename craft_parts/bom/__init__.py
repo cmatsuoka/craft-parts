@@ -16,4 +16,4 @@
 
 """Bill of materials generation."""
 
-from .bom import Component, ComponentList, Metadata  # noqa: F401
+from .bom import Component, IntermediateMetadata  # noqa: F401

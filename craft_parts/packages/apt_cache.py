@@ -395,8 +395,6 @@ def _set_pkg_version(package: apt.package.Package, version: str) -> None:
 
 
 class _AptComponent(bom.Component):
-    component_architecture: str
-
     @classmethod
     def from_package(cls, package: apt.package.Package) -> "Optional[_AptComponent]":
         """Create an _AptComponent object using data from an apt package."""
@@ -410,13 +408,13 @@ class _AptComponent(bom.Component):
         return cls(
             component_type="deb",
             component_name=package.shortname,
-            component_architecture=candidate.architecture,
             component_hashes={
                 "md5": candidate.md5,
                 "sha1": candidate.sha1,
                 "sha256": candidate.sha256,
             },
             version_string=candidate.version,
+            architecture=candidate.architecture,
             component_id=(
                 f"deb:{package.shortname}_{candidate.version}_{candidate.sha256[:8]}"
             ),

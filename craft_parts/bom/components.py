@@ -18,21 +18,20 @@
 
 from typing import Dict, List
 
-from craft_parts.bom import Component, ComponentList
+from craft_parts.bom import Component
 from craft_parts.parts import Part
 
 
 def _get_stage_package_components(part: Part) -> List[Component]:
     component_list: List[Component] = []
     for component_path in part.part_packages_dir.glob("*.component"):
-        print("===", component_path)
         data = Component.read(component_path)
         component_list.append(data)
 
     return component_list
 
 
-def consolidate_component_list(part_list: List[Part]) -> ComponentList:
+def consolidate_component_list(part_list: List[Part]) -> List[Component]:
     """Merge BOM information from existing sources.
 
     Gather partial BOM items from different origins, including the part
@@ -52,4 +51,4 @@ def consolidate_component_list(part_list: List[Part]) -> ComponentList:
         for component in stage_package_components:
             all_comps[component.component_id] = component
 
-    return ComponentList(components=list(all_comps.values()))
+    return list(all_comps.values())
