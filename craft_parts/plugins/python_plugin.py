@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Set, cast
 
 from overrides import override
 
-from .base import Plugin, PluginModel, extract_plugin_properties
+from .base import PluginModel, StrictPlugin, extract_plugin_properties
 from .properties import PluginProperties
 
 
@@ -53,7 +53,7 @@ class PythonPluginProperties(PluginProperties, PluginModel):
         return cls(**plugin_data)
 
 
-class PythonPlugin(Plugin):
+class PythonPlugin(StrictPlugin):
     """A plugin to build python parts.
 
     It can be used for python projects where you would want to do:
@@ -108,7 +108,7 @@ class PythonPlugin(Plugin):
     @override
     def get_build_packages(self) -> Set[str]:
         """Return a set of required packages to install in the build environment."""
-        return {"findutils", "python3-dev", "python3-venv"}
+        return {"findutils", "python3-dev", "python3-venv", "python3-wheel"}
 
     @override
     def get_build_environment(self) -> Dict[str, str]:
@@ -125,14 +125,23 @@ class PythonPlugin(Plugin):
     # pylint: disable=line-too-long
 
     @override
-    def get_build_commands(self) -> List[str]:
-        """Return a list of commands to run during the build step."""
-        build_commands = [
-            f'"${{PARTS_PYTHON_INTERPRETER}}" -m venv ${{PARTS_PYTHON_VENV_ARGS}} "{self._part_info.part_install_dir}"',
-            f'PARTS_PYTHON_VENV_INTERP_PATH="{self._part_info.part_install_dir}/bin/${{PARTS_PYTHON_INTERPRETER}}"',
-        ]
-
+    def get_pull_prepare_commands(self) -> List[str]:
+        """Return a list of commands to prepare for build during the pull step."""
         options = cast(PythonPluginProperties, self._options)
+
+        cache_dir = self._part_info.part_cache_dir / "python-packages"
+
+        prepare_commands = [f'mkdir -p "{str(cache_dir)}"']
+
+        pip_command = " ".join(
+            [
+                "pip3",
+                "download",
+                "--disable-pip-version-check",
+                "--dest",
+                str(cache_dir),
+            ]
+        )
 
         if options.python_constraints:
             constraints = " ".join(f"-c {c!r}" for c in options.python_constraints)
@@ -143,7 +152,50 @@ class PythonPlugin(Plugin):
             python_packages = " ".join(
                 [shlex.quote(pkg) for pkg in options.python_packages]
             )
-            python_packages_cmd = f"pip install {constraints} -U {python_packages}"
+            python_packages_cmd = f"{pip_command} {constraints} {python_packages}"
+            prepare_commands.append(python_packages_cmd)
+
+        if options.python_requirements:
+            requirements = " ".join(f"-r {r!r}" for r in options.python_requirements)
+            requirements_cmd = f"{pip_command} {constraints} {requirements}"
+            prepare_commands.append(requirements_cmd)
+
+        return prepare_commands
+
+    @override
+    def get_build_commands(self) -> List[str]:
+        """Return a list of commands to run during the build step."""
+        build_commands = [
+            f'"${{PARTS_PYTHON_INTERPRETER}}" -m venv ${{PARTS_PYTHON_VENV_ARGS}} "{self._part_info.part_install_dir}"',
+            f'PARTS_PYTHON_VENV_INTERP_PATH="{self._part_info.part_install_dir}/bin/${{PARTS_PYTHON_INTERPRETER}}"',
+        ]
+
+        options = cast(PythonPluginProperties, self._options)
+
+        if self._part_info.offline_build:
+            # in offline mode we install packages from the cache
+            pip_options = " ".join(
+                [
+                    "--no-index",
+                    "--find-links",
+                    str(self._part_info.part_cache_dir / "python-packages"),
+                ]
+            )
+        else:
+            pip_options = ""
+
+        if options.python_constraints:
+            constraints = " ".join(f"-c {c!r}" for c in options.python_constraints)
+        else:
+            constraints = ""
+
+        if options.python_packages:
+            python_packages = " ".join(
+                [shlex.quote(pkg) for pkg in options.python_packages]
+            )
+            python_packages_cmd = (
+                f"pip install {pip_options} {constraints} -U {python_packages}"
+            )
             build_commands.append(python_packages_cmd)
 
         if options.python_requirements:

@@ -797,6 +797,9 @@ class PartHandler:
 
     def _clean_pull(self) -> None:
         """Remove the current part's pull step files and state."""
+        # Clean up plugin preparation
+        _remove(self._part.part_cache_dir)
+
         # remove dirs where stage packages and snaps are fetched
         _remove(self._part.part_packages_dir)
         _remove(self._part.part_snaps_dir)
