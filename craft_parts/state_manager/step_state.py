@@ -16,6 +16,7 @@
 
 """The step state preserves step execution context information."""
 
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Set
@@ -23,6 +24,8 @@ from typing import Any, Dict, Set
 from pydantic_yaml import YamlModel
 
 from craft_parts.utils import os_utils
+
+logger = logging.getLogger(__name__)
 
 
 class MigrationState(YamlModel):
@@ -61,6 +64,7 @@ class MigrationState(YamlModel):
         filepath.parent.mkdir(parents=True, exist_ok=True)
         yaml_data = self.yaml(by_alias=True)
         os_utils.TimedWriter.write_text(filepath, yaml_data)
+        logger.debug("state file written: %s", filepath)
 
 
 class StepState(MigrationState, ABC):

@@ -499,6 +499,7 @@ def _sort_steps_by_state_timestamp(
     for part in part_list:
         for step in list(Step):
             path = get_step_state_path(part, step)
+            logger.debug("%s:%s state path: %s", part, step, path)
             if path.is_file():
                 mtime = path.stat().st_mtime_ns
                 state_files.append((part, step, mtime))

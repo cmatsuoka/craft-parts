@@ -49,6 +49,7 @@ def load_step_state(part: Part, step: Step) -> Optional[StepState]:
     """
     filename = get_step_state_path(part, step)
     if not filename.is_file():
+        logger.debug("state file not found: %s", filename)
         return None
 
     logger.debug("load state file: %s", filename)
