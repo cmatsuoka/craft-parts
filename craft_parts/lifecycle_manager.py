@@ -100,6 +100,7 @@ class LifecycleManager:
         extra_build_snaps: Optional[List[str]] = None,
         track_stage_packages: bool = False,
         strict_mode: bool = False,
+        only_pull_source: bool = False,
         base_layer_dir: Optional[Path] = None,
         base_layer_hash: Optional[bytes] = None,
         project_vars_part_name: Optional[str] = None,
@@ -191,6 +192,7 @@ class LifecycleManager:
             extra_build_packages=extra_build_packages,
             extra_build_snaps=extra_build_snaps,
             track_stage_packages=track_stage_packages,
+            only_pull_source=only_pull_source,
             base_layer_dir=base_layer_dir,
             base_layer_hash=layer_hash,
         )
@@ -409,5 +411,6 @@ def _validate_partitions_in_paths(
                             "Specify the correct partition name, for example "
                             f"'(default)/{filepath}'"
                         ),
-                    )
+                    ),
+                    stacklevel=1,
                 )

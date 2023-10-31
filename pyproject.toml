@@ -146,6 +146,9 @@ ignore = [
     "RET504", "RET506",  # Return value related.
     "PLR2004", # Magic value used in comparison
 
+    "S603", # `subprocess` call: check for execution of untrusted input
+    "S607", # Starting a process with a partial executable path
+
 ]
 #show-source = true
 

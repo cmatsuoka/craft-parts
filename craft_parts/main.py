@@ -101,6 +101,7 @@ def _process_parts(options: argparse.Namespace) -> None:
         work_dir=options.work_dir,
         cache_dir=cache_dir,
         strict_mode=options.strict,
+        only_pull_source=options.only_pull_source,
         base=options.base,
         base_layer_dir=overlay_base,
         base_layer_hash=base_layer_hash,
@@ -275,6 +276,11 @@ def _parse_arguments() -> argparse.Namespace:
         metavar="dirname",
         default="",
         help="Set an alternate cache directory location.",
+    )
+    parser.add_argument(
+        "--only-pull-source",
+        action="store_true",
+        help="Pull the source artefact only.",
     )
     parser.add_argument(
         "-v",

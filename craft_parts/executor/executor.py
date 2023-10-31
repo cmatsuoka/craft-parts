@@ -63,6 +63,7 @@ class Executor:
         extra_build_snaps: Optional[List[str]] = None,
         track_stage_packages: bool = False,
         ignore_patterns: Optional[List[str]] = None,
+        only_pull_source: bool = False,
         base_layer_dir: Optional[Path] = None,
         base_layer_hash: Optional[LayerHash] = None,
     ):
@@ -74,6 +75,7 @@ class Executor:
         self._base_layer_hash = base_layer_hash
         self._handler: Dict[str, PartHandler] = {}
         self._ignore_patterns = ignore_patterns
+        self._only_pull_source = only_pull_source
 
         self._overlay_manager = OverlayManager(
             project_info=self._project_info,
@@ -219,6 +221,7 @@ class Executor:
             track_stage_packages=self._track_stage_packages,
             overlay_manager=self._overlay_manager,
             ignore_patterns=self._ignore_patterns,
+            only_pull_source=self._only_pull_source,
             base_layer_hash=self._base_layer_hash,
         )
         self._handler[part.name] = handler

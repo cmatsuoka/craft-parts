@@ -73,6 +73,7 @@ class StepHandler:
         plugin: Plugin,
         source_handler: Optional[SourceHandler],
         env: str,
+        only_pull_source: bool = False,
         stdout: Stream = None,
         stderr: Stream = None,
     ):
@@ -80,6 +81,7 @@ class StepHandler:
         self._step_info = step_info
         self._plugin = plugin
         self._source_handler = source_handler
+        self._only_pull_source = only_pull_source
         self._env = env
         self._stdout = stdout
         self._stderr = stderr
@@ -108,6 +110,9 @@ class StepHandler:
     def _builtin_pull(self) -> StepContents:
         if self._source_handler:
             self._source_handler.pull()
+
+        if self._only_pull_source:
+            return StepContents()
 
         pull_commands = self._plugin.get_pull_commands()
 

@@ -90,6 +90,7 @@ class PartHandler:
         overlay_manager: OverlayManager,
         ignore_patterns: Optional[List[str]] = None,
         base_layer_hash: Optional[LayerHash] = None,
+        only_pull_source: bool = False,
     ):
         self._part = part
         self._part_info = part_info
@@ -98,6 +99,7 @@ class PartHandler:
         self._overlay_manager = overlay_manager
         self._base_layer_hash = base_layer_hash
         self._app_environment: Dict[str, str] = {}
+        self._only_pull_source = only_pull_source
 
         self._plugin = plugins.get_plugin(
             part=part,
@@ -191,9 +193,13 @@ class PartHandler:
         _remove(self._part.part_src_dir)
         self._make_dirs()
 
-        fetched_packages = self._fetch_stage_packages(step_info=step_info)
-        fetched_snaps = self._fetch_stage_snaps()
-        self._fetch_overlay_packages()
+        if self._only_pull_source:
+            fetched_packages = self._fetch_stage_packages(step_info=step_info)
+            fetched_snaps = self._fetch_stage_snaps()
+            self._fetch_overlay_packages()
+        else:
+            fetched_packages = []
+            fetched_snaps = []
 
         self._run_step(
             step_info=step_info,
@@ -475,6 +481,7 @@ class PartHandler:
             step_info=step_info,
             plugin=self._plugin,
             source_handler=self._source_handler,
+            only_pull_source=self._only_pull_source,
             env=step_env,
             stdout=stdout,
             stderr=stderr,
