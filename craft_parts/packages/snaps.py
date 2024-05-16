@@ -19,6 +19,7 @@
 import contextlib
 import logging
 import os
+import pathlib
 import subprocess
 import sys
 from typing import (
@@ -300,6 +301,7 @@ def install_snaps(snaps_list: Union[Sequence[str], Set[str]]) -> List[str]:
 
         store_snap_info = snap_pkg.get_store_snap_info()
         if store_snap_info:
+            print("====", store_snap_info)  
             # Allow bases to be installed from non stable channels.
             snap_pkg_channel = store_snap_info["channel"]
             snap_pkg_type = store_snap_info["type"]
@@ -392,3 +394,7 @@ def get_installed_snaps() -> List[str]:
     except exceptions.ConnectionError:
         local_snaps = []
     return [f'{snap["name"]}={snap["revision"]}' for snap in local_snaps]
+
+
+def _snap_cache_dir() -> pathlib.Path:
+    return pathlib.Path.home() / ".cache" / "snapcraft" / "snaps"
