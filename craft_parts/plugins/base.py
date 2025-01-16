@@ -166,7 +166,6 @@ class BasePythonPlugin(Plugin):
             echo Looking for a Python interpreter called \\"${{basename}}\\" in the payload...
             payload_python=$(find "$install_dir" "$stage_dir" -type f -executable -name "${{basename}}" -print -quit 2>/dev/null)
 
-            echo "Paylad python is $payload_python"
             if [ -n "$payload_python" ]; then
                 # We found a provisioned interpreter, use it.
                 echo Found interpreter in payload: \\"${{payload_python}}\\"
@@ -183,13 +182,11 @@ class BasePythonPlugin(Plugin):
                 echo "Python interpreter not found in payload."
                 symlink_target="{python_interpreter}"
             fi
-            echo "Finish testing payload python"
 
             if [ -z "$symlink_target" ]; then
                 echo "No suitable Python interpreter found, giving up."
                 exit 1
             fi
-            echo "Finish find_python_interpreter_commands"
 
             eval "${{opts_state}}"
             """
