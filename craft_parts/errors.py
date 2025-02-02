@@ -531,7 +531,11 @@ class UserExecutionError(PartsError, abc.ABC):
                 # Fallback to printing the whole log
                 last_command = 0
 
-            for line in stderr_lines[last_command:]:
+            first_line = last_command - 2
+            if first_line < 0:
+                first_line = 0
+
+            for line in stderr_lines[first_line:]:
                 if line:
                     details_io.write(f"\n:: {line}")
 

@@ -153,6 +153,7 @@ class StepHandler:
                 stderr=self._stderr,
             )
         except process.ProcessError as process_error:
+            print("====== 3", process_error.result)
             raise errors.PluginBuildError(
                 part_name=self._part.name,
                 plugin_name=self._part.plugin_name,
