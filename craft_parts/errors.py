@@ -521,23 +521,25 @@ class UserExecutionError(PartsError, abc.ABC):
 
             stderr = self.stderr.decode("utf-8", errors="replace")
             stderr_lines = stderr.split("\n")
-            # Find the final command captured in the logs
-            last_command = None
-            for idx, line in enumerate(reversed(stderr_lines)):
-                if line.startswith("+"):
-                    last_command = len(stderr_lines) - idx - 1
-                    break
-            else:
-                # Fallback to printing the whole log
-                last_command = 0
+            stderr_lines = list(filter(lambda x: x, stderr_lines))
 
-            first_line = last_command - 2
-            if first_line < 0:
-                first_line = 0
+#            # Find the final command captured in the logs
+#            last_command = None
+#            for idx, line in enumerate(reversed(stderr_lines)):
+#                if line.startswith("+"):
+#                    last_command = len(stderr_lines) - idx - 1
+#                    break
+#            else:
+#                # Fallback to printing the whole log
+#                last_command = 0
+#
+#            #first_line = last_command - 2
+#            #if first_line < 0:
+#            #    first_line = 0
 
-            for line in stderr_lines[first_line:]:
-                if line:
-                    details_io.write(f"\n:: {line}")
+
+            for line in stderr_lines[-3:]:
+                details_io.write(f"\n:: {line}")
 
             return details_io.getvalue()
 

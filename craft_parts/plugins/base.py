@@ -185,6 +185,7 @@ class BasePythonPlugin(Plugin):
 
             if [ -z "$symlink_target" ]; then
                 echo "No suitable Python interpreter found, giving up."
+                sleep 1
                 exit 1
             fi
 

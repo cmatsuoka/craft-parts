@@ -157,7 +157,7 @@ class StepHandler:
             raise errors.PluginBuildError(
                 part_name=self._part.name,
                 plugin_name=self._part.plugin_name,
-                stderr=process_error.result.stderr,
+                stderr=process_error.result.combined,
             ) from process_error
 
         return StepContents()
