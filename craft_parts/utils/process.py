@@ -16,6 +16,7 @@
 
 """Utilities for executing subprocesses and handling their stdout and stderr streams."""
 
+import logging
 import os
 import selectors
 import subprocess
@@ -26,6 +27,8 @@ from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import IO, TextIO
+
+logger = logging.getLogger(__name__)
 
 Command = str | Path | Sequence[str | Path]
 Stream = TextIO | int | None
@@ -123,6 +126,8 @@ def run(
     :return: A description of the process' outcome.
     :rtype: ProcessResult
     """
+    logger.debug(f"execute process: {command}")
+
     # Optimized base case - no custom handlers or redirections at all
     if not selector and stdout == DEVNULL and stderr == DEVNULL:
         result_sp = subprocess.run(
@@ -183,6 +188,8 @@ def run(
 
     if check:
         result.check_returncode()
+
+    logger.debug("process execution result: {result.check_returncode()}")
 
     return result
 
