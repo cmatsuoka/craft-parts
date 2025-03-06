@@ -165,9 +165,12 @@ class BasePythonPlugin(Plugin):
             basename=$(basename $(readlink -f ${{PARTS_PYTHON_VENV_INTERP_PATH}}))
             echo Looking for a Python interpreter called \\"${{basename}}\\" in the payload...
             payload_python=$(find "$install_dir" "$stage_dir" -type f -executable -name "${{basename}}" -print -quit || true)
+            echo "##### 1"
             echo "$payload_python"
+            echo "##### 2"
 
             if [ -n "$payload_python" ]; then
+                echo "##### 3"
                 # We found a provisioned interpreter, use it.
                 echo Found interpreter in payload: \\"${{payload_python}}\\"
                 installed_python="${{payload_python##{self._part_info.part_install_dir}}}"
@@ -179,15 +182,18 @@ class BasePythonPlugin(Plugin):
                     symlink_target="..$installed_python"
                 fi
             else
+                echo "##### 4"
                 # Otherwise use what _get_system_python_interpreter() told us.
                 echo "Python interpreter not found in payload." >&2
                 symlink_target="{python_interpreter}"
             fi
+            echo "##### 5"
 
             if [ -z "$symlink_target" ]; then
                 echo "No suitable Python interpreter found, giving up." >&2
                 exit 1
             fi
+            echo "##### 6"
 
             eval "${{opts_state}}"
             """
