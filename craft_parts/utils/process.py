@@ -81,7 +81,9 @@ class _ProcessStream:
         if i >= 0:
             self._linebuf.extend(data[: i + 1])
             self._streambuf += self._linebuf
-            os.write(self.write_fd, self._linebuf)
+            print(f"=== fd:{self.write_fd}   linebuf:'{self._linebuf}'")
+            n = os.write(self.write_fd, self._linebuf)
+            print(f"=== result: {n}")
             self._linebuf.clear()
             self._linebuf.extend(data[i + 1 :])
             return data
@@ -170,6 +172,7 @@ def run(
                     pass
 
                 if proc.poll() is not None:
+                    print("=== process died!!")
                     combined = combined_io.getvalue()
                     break
 
