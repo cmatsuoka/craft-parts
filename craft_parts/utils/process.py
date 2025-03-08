@@ -21,6 +21,7 @@ import os
 import selectors
 import subprocess
 import sys
+import time
 from collections.abc import Generator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
@@ -173,6 +174,7 @@ def run(
 
                 if proc.poll() is not None:
                     print("=== process died!!")
+                    time.sleep(0.2)  # allow the OS to process output streams
                     combined = combined_io.getvalue()
                     break
 
