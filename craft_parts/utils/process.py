@@ -21,7 +21,6 @@ import os
 import selectors
 import subprocess
 import sys
-import time
 from collections.abc import Generator, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
@@ -159,6 +158,7 @@ def run(
 
         with closing(BytesIO()) as combined_io:
             while True:
+                finished = proc.poll() is not None
                 try:
                     # Time out if we don't have any event to handle
                     for key, mask in selector.select(0.1):
@@ -172,9 +172,8 @@ def run(
                 except BlockingIOError:
                     pass
 
-                if proc.poll() is not None:
+                if finished:
                     print("=== process died!!")
-                    time.sleep(0.2)  # allow the OS to process output streams
                     combined = combined_io.getvalue()
                     break
 
