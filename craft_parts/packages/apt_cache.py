@@ -201,7 +201,7 @@ class AptCache(ContextDecorator):
             raise errors.PackagesError(
                 brief="Cannot prepare the package cache.",
                 details=(
-                    f"Failed to prepare the apt cache at {self.stage_cache}: {err}."
+                    f"Failed to prepare the APT cache at {self.stage_cache}: {err}."
                 ),
                 resolution=(
                     "This is usually caused by running the application with sudo "
